@@ -69,7 +69,7 @@ def pattern_to_z3(pattern: str) -> Any:
         re.error: If pattern is invalid regex.
     """
     import re
-    import re._parser as sre_parse  # type: ignore[import-untyped]
+    import re._parser as sre_parse  # type: ignore[import-untyped,import-not-found]
 
     # C1 fix: Detect case-insensitive flag — Z3 regex is always
     # case-sensitive, so (?i) would silently produce false SAFE results.

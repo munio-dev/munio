@@ -657,11 +657,15 @@ class TestServe:
         assert "serve" in result.output
 
     def test_serve_help_shows_options(self) -> None:
+        import re
+
         result = runner.invoke(app, ["serve", "--help"])
         assert result.exit_code == 0
-        assert "--host" in result.output
-        assert "--port" in result.output
-        assert "--pack" in result.output
+        # Strip ANSI escape codes (Rich renders differently on CI vs terminal)
+        clean = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+        assert "--host" in clean
+        assert "--port" in clean
+        assert "--pack" in clean
 
     def test_nonexistent_dir_exits_error(self) -> None:
         result = runner.invoke(app, ["serve", "-d", "/nonexistent/path"])

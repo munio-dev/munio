@@ -215,7 +215,7 @@ class ScanResult(BaseModel):
         _layer_names = {lyr.value: lyr.name for lyr in Layer}
         _attack_names = {a.value: a.name for a in AttackType}
 
-        for f in d.get("findings", []):  # type: ignore[union-attr]
+        for f in d.get("findings", []):  # type: ignore[union-attr,attr-defined]
             if isinstance(f, dict):
                 if "severity" in f and isinstance(f["severity"], int):
                     f["severity"] = _severity_names.get(f["severity"], f["severity"])

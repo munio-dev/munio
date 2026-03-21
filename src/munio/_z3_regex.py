@@ -37,7 +37,7 @@ def _regex_to_z3(pattern: str) -> Any:
     Supported: literals, ., *, +, ?, {n,m}, |, [a-z], [^...], \\d, \\s, \\w, groups.
     Unsupported (raises ValueError): backreferences, lookahead/behind, flags.
     """
-    import re._parser as sre_parse  # type: ignore[import-untyped]
+    import re._parser as sre_parse  # type: ignore[import-untyped,import-not-found]
 
     parsed = sre_parse.parse(pattern)
     return _sre_to_z3(parsed)
