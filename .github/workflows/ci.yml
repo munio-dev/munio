@@ -40,7 +40,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked --dev --all-extras
-      - run: uv run pytest -x -q      - run: uv run pytest tests/core/ tests/scan/ tests/gate/ -x -q        if: failure()
+      - run: uv run pytest -x -q
+      - run: uv run pytest tests/core/ tests/scan/ tests/gate/ -x -q
+        if: failure()
 
   smoke:
     runs-on: ubuntu-latest
