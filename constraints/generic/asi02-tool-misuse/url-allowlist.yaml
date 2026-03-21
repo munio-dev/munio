@@ -1,0 +1,21 @@
+name: api-url-allowlist
+description: "Restrict HTTP requests to approved API endpoints only"
+category: ASI02  # Tool Misuse
+tier: 1
+action: http_request
+check:
+  type: allowlist
+  field: url
+  values:
+    - "https://api.openai.com/"
+    - "https://api.anthropic.com/"
+    - "https://api.stripe.com/"
+    - "https://api.github.com/"
+  match: prefix
+  case_sensitive: false
+conditions:
+  - field: headers.authorization
+    exists: true
+on_violation: block
+severity: high
+enabled: false  # Opt-in: users customize this allowlist

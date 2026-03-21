@@ -1,0 +1,15 @@
+name: openclaw-write-path-traversal
+description: "Block path traversal and absolute paths in write tool"
+category: ASI05  # Code Execution / File System
+tier: 1
+action: write
+check:
+  type: regex_deny
+  field: path
+  patterns:
+    - "\\.\\."
+    - "^/"
+    - "^~"
+  case_sensitive: true
+on_violation: block
+severity: critical

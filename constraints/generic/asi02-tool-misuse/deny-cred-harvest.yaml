@@ -1,0 +1,16 @@
+name: deny-cred-harvest
+description: "Block reading multiple files then sending HTTP (credential harvesting)"
+category: ASI02
+tier: 1
+action: "*"
+check:
+  type: sequence_deny
+  field: "*"
+  steps:
+    - "read_file"
+    - "read_file"
+    - "http_request"
+  window_seconds: 600
+  scope: agent
+on_violation: block
+severity: critical

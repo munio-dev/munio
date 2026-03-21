@@ -1,0 +1,15 @@
+name: policy-no-exfil-path
+description: "Verify no data flow from database to external HTTP"
+category: ASI02
+tier: 4
+deploy_check:
+  type: data_flow
+  source: db_query
+  forbidden_sink: http_request
+  flow_edges:
+    - [db_query, transform]
+    - [transform, http_request]
+    - [transform, file_write]
+    - [db_query, llm_call]
+    - [llm_call, http_request]
+  verify: "No transitive path from database to external HTTP"

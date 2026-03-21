@@ -1,0 +1,9 @@
+name: policy-no-new-spend-access
+description: "Verify updated spending limits are not more permissive than baseline"
+category: ASI02
+tier: 4
+deploy_check:
+  type: no_new_access
+  baseline_constraints_ref: [max-spend-per-request]
+  constraints_ref: [max-spend-per-request]
+  verify: "New spend limits do not grant higher access than baseline"

@@ -1,0 +1,215 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "munio"
+version = "0.1.0"
+description = "AI agent security toolkit — scan MCP servers, guard tool calls"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Munio Security" },
+]
+keywords = [
+    "ai-safety",
+    "agent-security",
+    "formal-verification",
+    "guardrails",
+    "langchain",
+    "crewai",
+    "mcp",
+    "mcp-security",
+    "mcp-scanner",
+    "openclaw",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pyyaml>=6.0,<7",
+    "typer>=0.12,<1",
+    "rich>=13,<14",
+]
+
+[project.optional-dependencies]
+z3 = [
+    "z3-solver>=4.16,<5",
+]
+server = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",
+]
+ml = [
+    "scikit-learn>=1.5,<2",
+    "joblib>=1.4,<2",
+]
+langchain = [
+    "langchain-core>=1.0,<2",
+]
+crewai = [
+    "crewai>=1.5,<3",
+]
+openai-agents = [
+    "openai-agents>=0.1,<1",
+]
+mcp-adapter = [
+    "fastmcp>=3.0,<4",
+]
+mcp-client = [
+    "mcp>=1.25,<2",
+]
+download = [
+    "httpx>=0.25,<1",
+]
+source = [
+    "tree-sitter>=0.24,<1",
+    "tree-sitter-javascript>=0.23,<1",
+    "tree-sitter-typescript>=0.23,<1",
+    "tree-sitter-python>=0.23,<1",
+]
+all = [
+    "munio[z3,server,ml,langchain,crewai,openai-agents,mcp-adapter,mcp-client,download,source]",
+]
+
+[project.scripts]
+munio = "munio.cli:main"
+
+[project.urls]
+Homepage = "https://munio.dev"
+Documentation = "https://munio.dev/docs"
+Repository = "https://github.com/munio-dev/munio"
+Issues = "https://github.com/munio-dev/munio/issues"
+Changelog = "https://github.com/munio-dev/munio/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/munio"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"constraints" = "munio/gate/data/constraints"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "_private/",
+    "tests/red_team/",
+    "research/",
+    "docs/design/",
+    "mkdocs.yml",
+    "uv.lock",
+    ".pre-commit-config.yaml",
+    "scripts/",
+    ".github/",
+    "assets/",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.24,<1",
+    "pytest-benchmark>=4,<5",
+    "hypothesis>=6.100,<7",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "coverage>=7,<8",
+    "httpx>=0.27,<1",
+    "types-pyyaml>=6.0.12.20250915",
+    "zensical>=0.0.24",
+    # ML classifier training (scripts/train_classifier.py, scripts/eval_classifier.py)
+    "transformers>=4.40,<5",
+    "torch>=2.2,<3",
+    "scikit-learn>=1.5,<2",
+    "joblib>=1.4,<2",
+    "sentence-transformers>=5.2.3",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "TCH",  # type-checking imports
+    "RUF",  # ruff-specific
+    "S",    # bandit (security)
+    "A",    # flake8-builtins
+    "C4",   # flake8-comprehensions
+    "PT",   # flake8-pytest-style
+    "RET",  # flake8-return
+    "PIE",  # flake8-pie
+    "PERF", # perflint (performance)
+    "PTH",  # pathlib over os.path
+    "T20",  # flake8-print (no print in library code)
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "PIE790", # unnecessary `...` — needed in stub/TODO methods
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S108"]
+"src/munio/cli.py" = ["T201", "B008"]
+"src/munio/server.py" = ["B008"]
+"src/munio/_composite.py" = ["S307"]
+"src/munio/gate/cli.py" = ["T201", "B008"]
+"src/munio/scan/cli.py" = ["T201", "B008", "PERF203"]
+"scripts/**/*.py" = ["T201", "S311"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["munio"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.coverage.run]
+source = ["munio"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "z3: marks tests requiring Z3 solver",
+    "benchmark: marks benchmark tests",
+    "server: marks tests requiring server dependencies (fastapi, httpx)",
+    "hypothesis: marks property-based tests",
+    "integration: marks tests requiring real subprocess/network (deselect with '-m \"not integration\"')",
+    "real_mcp: marks tests requiring real MCP server via npx + network (run with '-m real_mcp')",
+]

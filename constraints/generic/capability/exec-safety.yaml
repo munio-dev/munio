@@ -1,0 +1,131 @@
+name: capability-exec-safety
+description: "Block dangerous shell commands in execution/command tools"
+category: ASI02
+tier: 1
+actions:
+  # Specific exec/shell tool patterns — not generic words like "process"
+  - "exec"
+  - "*exec_*"
+  - "*_exec"
+  - "*exec_command*"
+  - "*exec_shell*"
+  - "*command*"
+  - "*shell*"
+  - "*terminal*"
+  - "*bash*"
+  - "*zsh*"
+  - "*powershell*"
+  - "*subprocess*"
+  - "*spawn*"
+  - "run_command*"
+  - "run_shell*"
+  - "run_script*"
+  - "run_bash*"
+  - "run_cmd*"
+  - "*_cmd"
+  - "*_cmd_*"
+  - "cmd_*"
+  # Bare tool names
+  - "run"
+  - "execute"
+  - "console"
+  - "*execute*"
+  - "sh"
+  - "bash"
+  # Compound patterns for process/system (targeted, not *process*)
+  - "*_process"
+  - "start_*"
+  - "kill_*"
+  # Bare tool names for direct execution
+  - "system"
+  - "ssh"
+  - "kubectl"
+  - "invoke"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    # Destructive file operations
+    - "rm\\s+(-[a-zA-Z]*f[a-zA-Z]*\\s+|--force\\s+)?/"
+    - "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f"
+    - "rm\\s+-[a-zA-Z]*f[a-zA-Z]*r"
+    - "\\brm\\s+.*--recursive"
+    - "\\brm\\s+.*--force"
+    - "\\brm\\s+.*--no-preserve-root"
+    - "mkfs\\."
+    - "dd\\s+.*of=/dev/"
+    - "\\bfind\\s+.*-delete"
+    - "\\bfind\\s+.*-exec\\s+rm"
+    # Pipe to shell/interpreter
+    - "\\|\\s*(ba|z|da|k|fi)?sh\\b"
+    - "\\|\\s*(python|perl|ruby|node)\\b"
+    # Download-and-execute
+    - "curl\\s+.*-o\\s+.*(;|&&).*sh\\b"
+    - "curl\\s+.*\\|\\s*sh"
+    - "wget\\s+.*-O\\s+.*(;|&&).*sh\\b"
+    - "wget\\s+.*\\|\\s*sh"
+    # Process substitution to shell
+    - "(ba|z|da|k)?sh\\s+<\\("
+    - "\\bsource\\s+<\\("
+    # Awk-based code execution / reverse shells
+    - "\\bawk\\s+.*BEGIN\\s*\\{"
+    - "\\bgawk\\s+.*BEGIN\\s*\\{"
+    - "\\bmawk\\s+.*BEGIN\\s*\\{"
+    # Scripting language one-liners
+    - "\\bpython[23]?(\\.\\d+)?\\s+-(c|m)\\s+"
+    - "\\bperl\\s+-e\\s+"
+    - "\\bruby\\s+-e\\s+"
+    - "\\bnode\\s+-e\\s+"
+    - "\\bphp\\s+-r\\s+"
+    # Permissions / privilege escalation
+    - "chmod\\s+(777|666|[2-7][0-7]{3})"
+    - "chmod\\s+[ugoa]*\\+[rwxXst]"
+    - "chown\\s+root"
+    - "\\bsudo\\s+"
+    # Network tools (reverse shell / exfiltration)
+    - "\\bnc\\s+.*-e\\s+"
+    - "\\bncat\\s+.*-e\\s+"
+    - "\\bsocat\\b"
+    - "\\bnmap\\b"
+    - "\\btelnet\\s+"
+    - "\\bssh\\s+.*@"
+    - "\\bscp\\s+"
+    - "\\bsftp\\s+"
+    # Docker / container escape
+    - "\\bdocker\\s+(run|exec|cp|build)\\b"
+    - "\\bnsenter\\b"
+    - "\\bmount\\s+"
+    # System commands
+    - "(^|[;&|]\\s*)shutdown(\\s|$)"
+    - "(^|[;&|]\\s*)reboot(\\s|$)"
+    - "(^|[;&|]\\s*)halt(\\s|$)"
+    # Crontab modification
+    - "crontab\\s+-(e|r|i)"
+    # Environment hijacking
+    - "\\bexport\\s+(PATH|LD_PRELOAD|LD_LIBRARY_PATH|PYTHONPATH|NODE_PATH)="
+    # Data exfiltration: reading sensitive files
+    - "\\b(cat|head|tail|less|more|xxd|strings|base64)\\s+.*(\\.env|/etc/(passwd|shadow|hosts)|\\.(ssh|aws|gnupg)/|\\.git/config)"
+    # Data exfiltration: dumping env vars
+    - "(^|[;&|]\\s*)(env|printenv|set|declare\\s+-x)(\\s|$|\\s*\\|)"
+    # Data exfiltration: HTTP POST
+    - "\\bcurl\\s+.*(-d|--data|--data-raw|--data-binary|--upload-file|-T|-F|--form|--json)\\s+"
+    - "\\bwget\\s+.*(--post-(data|file)|--body-(data|file))\\s+"
+    # SSRF via exec
+    - "\\b(curl|wget|fetch|http)\\s+.*(169\\.254\\.169\\.254|127\\.0\\.0\\.[0-9]|\\[::1\\]|0\\.0\\.0\\.0|metadata\\.google)"
+    # DNS exfiltration
+    - "\\b(dig|nslookup|host)\\s+"
+    # /dev/tcp reverse shell
+    - "/dev/tcp/"
+    - "/dev/udp/"
+    # mkfifo reverse shell
+    - "\\bmkfifo\\b.*\\bnc\\b"
+    # Firewall / service manipulation
+    - "\\biptables\\s+"
+    - "\\bip6tables\\s+"
+    - "\\bnft\\s+"
+    - "\\bsystemctl\\s+(stop|disable|mask|kill)"
+    - "\\bservice\\s+\\S+\\s+(stop|restart)"
+  case_sensitive: false
+on_violation: block
+severity: critical
+enabled: true

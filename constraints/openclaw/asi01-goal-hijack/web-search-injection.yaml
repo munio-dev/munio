@@ -1,0 +1,20 @@
+name: openclaw-web-search-injection
+description: "Detect prompt injection patterns in web_search query field"
+category: ASI01  # Goal Hijacking
+tier: 1
+action: web_search
+check:
+  type: regex_deny
+  field: query
+  patterns:
+    - "ignore\\s+(previous|above|all)\\s+(instructions|prompts)"
+    - "disregard\\s+(previous|above|all)\\s+(instructions|prompts)"
+    - "system\\s*prompt"
+    - "you\\s+are\\s+now\\s+a"
+    - "new\\s+instructions?\\s*:"
+    - "override\\s+(previous|system)"
+    - "forget\\s+(everything|all|previous)"
+    - "act\\s+as\\s+(if|though)\\s+you"
+  case_sensitive: false
+on_violation: warn
+severity: medium

@@ -1,0 +1,80 @@
+name: capability-code-eval-safety
+description: "Block dangerous code execution patterns in eval/script tools"
+category: ASI05
+tier: 1
+actions:
+  # Specific code execution tool patterns — not generic words like "code"
+  - "*eval*"
+  - "*execute_code*"
+  - "*execute_script*"
+  - "*run_script*"
+  - "*exec_script*"
+  - "*run_code*"
+  - "*exec_code*"
+  - "*source_code*"
+  - "*compile*"
+  - "*interpret*"
+  - "*notebook*"
+  - "*jupyter*"
+  - "*sandbox*"
+  - "*_repl"
+  - "repl_*"
+  - "repl"
+  - "evaluate"
+  - "execute"
+  - "*_lambda"
+  - "lambda_*"
+  - "*invoke_function*"
+  - "*cloud_function*"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    # System access via code
+    - "\\bos\\.system\\s*\\("
+    - "\\bos\\.popen\\s*\\("
+    - "\\bos\\.exec"
+    - "\\bsubprocess\\."
+    - "\\b__import__\\s*\\("
+    - "\\bimportlib\\."
+    - "\\beval\\s*\\("
+    - "\\bexec\\s*\\("
+    - "\\bcompile\\s*\\("
+    # File system access
+    - "\\bopen\\s*\\(.*['\"]/(etc|proc|dev)/"
+    - "\\bopen\\s*\\(.*\\.(env|ssh|aws|gnupg)"
+    # Network access from code
+    - "\\bsocket\\."
+    - "\\burllib\\."
+    - "\\brequests\\."
+    - "\\bhttpx\\."
+    - "\\baiohttp\\."
+    # Process manipulation
+    - "\\bctypes\\."
+    - "\\bsignal\\."
+    # JavaScript dangerous patterns
+    - "\\brequire\\s*\\(['\"]child_process"
+    - "\\brequire\\s*\\(['\"]fs['\"]\\)"
+    - "\\bprocess\\.env\\b"
+    - "\\bglobalThis\\b"
+    # Shell escape from code
+    - "\\bchild_process\\."
+    - "\\bspawnSync\\b"
+    - "\\bexecSync\\b"
+    # Python sandbox escapes
+    - "\\b__class__\\b"
+    - "\\b__mro__\\b"
+    - "\\b__subclasses__\\b"
+    - "\\b__bases__\\b"
+    - "\\b__globals__\\b"
+    - "\\b__builtins__\\b"
+    - "\\bsys\\.modules\\b"
+    - "\\bpickle\\."
+    - "\\bmarshal\\."
+    - "\\bglobals\\s*\\("
+    - "\\bgetattr\\s*\\("
+    - "\\bbreakpoint\\s*\\("
+  case_sensitive: false
+on_violation: block
+severity: critical
+enabled: true

@@ -1,0 +1,18 @@
+name: prompt-injection-regex
+description: "Detect common prompt injection patterns in tool arguments"
+category: ASI01  # Agent Goal Hijack
+tier: 1
+action: "*"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    - "(?i)ignore\\s+(previous|above|all)\\s+(instructions|prompts)"
+    - "(?i)you\\s+are\\s+now\\s+a"
+    - "(?i)new\\s+instructions?:"
+    - "(?i)system\\s*:\\s*"
+    - "(?i)<\\|im_start\\|>"
+    - "(?i)\\[INST\\]"
+    - "(?i)\\{\\{.*system.*\\}\\}"
+on_violation: block
+severity: high

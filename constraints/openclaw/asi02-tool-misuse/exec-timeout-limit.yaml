@@ -1,0 +1,11 @@
+name: openclaw-exec-timeout-limit
+description: "Cap exec timeout at 300 seconds to prevent resource exhaustion"
+category: ASI02  # Tool Misuse
+tier: 1
+action: exec
+check:
+  type: threshold
+  field: timeout
+  max: 300
+on_violation: block
+severity: high

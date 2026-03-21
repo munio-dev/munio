@@ -1,0 +1,17 @@
+name: universal-path-traversal
+description: "Block path traversal sequences in any tool argument"
+category: ASI05
+tier: 1
+action: "*"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    # Any ../ traversal (covers all directories)
+    - "\\.\\./"
+    # Any ..\ traversal (Windows)
+    - "\\.\\.\\\\"
+  case_sensitive: true
+on_violation: block
+severity: critical
+enabled: true

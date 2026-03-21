@@ -1,0 +1,29 @@
+name: openclaw-read-path-denylist
+description: "Block reading sensitive system files and credentials"
+category: ASI05  # Code Execution / File System
+tier: 1
+action: read
+check:
+  type: denylist
+  field: path
+  values:
+    - "/etc/shadow"
+    - "/etc/passwd"
+    - "/proc/self/environ"
+    - "/proc/self/cmdline"
+    - ".ssh/"
+    - ".env"
+    - ".aws/"
+    - ".gnupg/"
+    - ".npmrc"
+    - ".pypirc"
+    - ".kube/config"
+    - ".docker/config.json"
+    - ".git-credentials"
+    - ".netrc"
+    - ".bash_history"
+    - ".zsh_history"
+  match: contains
+  case_sensitive: false
+on_violation: block
+severity: critical

@@ -1,0 +1,41 @@
+name: universal-dangerous-commands
+description: "Block shell injection patterns in any tool argument"
+category: ASI05
+tier: 1
+action: "*"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    # Pipe to shell/interpreter
+    - "\\|\\s*(ba|z|da|k|fi)?sh\\b"
+    - "\\|\\s*(python|perl|ruby|node)\\b"
+    # Download-and-execute
+    - "curl\\s+.*\\|\\s*sh"
+    - "wget\\s+.*\\|\\s*sh"
+    # Process substitution to shell
+    - "(ba|z|da|k)?sh\\s+<\\("
+    - "\\bsource\\s+<\\("
+    # Reverse shell
+    - "\\bnc\\s+.*-e\\s+"
+    - "/dev/tcp/"
+    - "\\bmkfifo\\b.*\\bnc\\b"
+    # Privilege escalation
+    - "\\bsudo\\s+"
+    - "chmod\\s+(777|[ugoa]*\\+[rwxXst])"
+    # Destructive file operations
+    - "\\brm\\s+-[a-zA-Z]*r[a-zA-Z]*f"
+    - "\\brm\\s+-[a-zA-Z]*f[a-zA-Z]*r"
+    - "\\brm\\s+.*--recursive"
+    - "\\brm\\s+.*--force"
+    - "\\brm\\s+.*--no-preserve-root"
+    # Awk-based code execution / reverse shells
+    - "\\bawk\\s+.*BEGIN\\s*\\{"
+    - "\\bgawk\\s+.*BEGIN\\s*\\{"
+    - "\\bmawk\\s+.*BEGIN\\s*\\{"
+    # Scripting language one-liners (any tool)
+    - "\\bpython[23]?(\\.\\d+)?\\s+-(c|m)\\s+"
+  case_sensitive: false
+on_violation: block
+severity: critical
+enabled: true

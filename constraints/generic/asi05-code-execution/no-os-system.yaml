@@ -1,0 +1,17 @@
+name: no-os-system
+description: "Block os.system, subprocess, and other shell execution"
+category: ASI05  # Unexpected Code Execution
+tier: 1
+action: execute_command
+check:
+  type: regex_deny
+  field: command
+  patterns:
+    - "os\\.system\\s*\\("
+    - "os\\.popen\\s*\\("
+    - "subprocess\\."
+    - "commands\\.getoutput"
+    - "/bin/sh"
+    - "/bin/bash"
+on_violation: block
+severity: critical

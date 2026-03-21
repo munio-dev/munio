@@ -1,0 +1,25 @@
+name: compound-spend-limit
+description: "Total cost (cost * quantity) must not exceed budget"
+category: ASI02
+tier: 2
+action: "purchase"
+check:
+  type: composite
+  field: "*"
+  variables:
+    cost:
+      field: cost
+      type: int
+      min: 0
+    quantity:
+      field: quantity
+      type: int
+      min: 1
+      max: 10000
+    budget:
+      field: budget
+      type: int
+      default: 10000
+  expression: "cost * quantity <= budget"
+on_violation: block
+severity: high

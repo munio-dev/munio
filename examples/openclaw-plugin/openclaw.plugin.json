@@ -1,0 +1,26 @@
+{
+  "id": "munio",
+  "name": "munio Safety Guard",
+  "description": "Pre-execution tool call verification via munio HTTP API",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiUrl": {
+        "type": "string",
+        "default": "http://localhost:8080",
+        "description": "munio HTTP API base URL"
+      },
+      "timeoutMs": {
+        "type": "number",
+        "default": 5000,
+        "description": "Request timeout in milliseconds"
+      },
+      "failClosed": {
+        "type": "boolean",
+        "default": true,
+        "description": "Block tool calls when munio is unavailable"
+      }
+    }
+  }
+}

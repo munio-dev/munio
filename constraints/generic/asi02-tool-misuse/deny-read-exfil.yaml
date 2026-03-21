@@ -1,0 +1,15 @@
+name: deny-read-exfil
+description: "Block file read followed by HTTP request (data exfiltration pattern)"
+category: ASI02
+tier: 1
+action: "*"
+check:
+  type: sequence_deny
+  field: "*"
+  steps:
+    - "read_file"
+    - "http_request"
+  window_seconds: 300
+  scope: agent
+on_violation: block
+severity: critical

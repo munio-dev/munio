@@ -1,0 +1,13 @@
+name: exec-rate-limit
+description: "Max 10 exec calls per 60-second window per agent"
+category: ASI02
+tier: 1
+action: "exec"
+check:
+  type: rate_limit
+  field: "*"
+  window_seconds: 60
+  max_count: 10
+  scope: agent
+on_violation: block
+severity: critical

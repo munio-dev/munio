@@ -1,0 +1,13 @@
+name: api-call-rate-limit
+description: "Max 50 HTTP requests per 60-second window"
+category: ASI02
+tier: 1
+action: "http_request"
+check:
+  type: rate_limit
+  field: "*"
+  window_seconds: 60
+  max_count: 50
+  scope: global
+on_violation: block
+severity: high

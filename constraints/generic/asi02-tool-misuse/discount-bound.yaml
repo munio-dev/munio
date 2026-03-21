@@ -1,0 +1,20 @@
+name: discount-bound
+description: "Discount must not exceed half the price and price minus discount must be non-negative"
+category: ASI02
+tier: 2
+action: "apply_discount"
+check:
+  type: composite
+  field: "*"
+  variables:
+    price:
+      field: price
+      type: int
+      min: 0
+    discount:
+      field: discount
+      type: int
+      min: 0
+  expression: "price - discount >= 0 and discount * 2 <= price"
+on_violation: block
+severity: high

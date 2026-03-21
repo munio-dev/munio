@@ -1,0 +1,9 @@
+name: policy-sqli-filter-complete
+description: "Verify SQL deny patterns catch all DROP TABLE variants"
+category: ASI02
+tier: 4
+deploy_check:
+  type: filter_completeness
+  constraints_ref: [sql-injection-deny]
+  dangerous_pattern: "DROP;TABLE"
+  verify: "All DROP TABLE variants caught by deny patterns"
