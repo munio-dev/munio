@@ -906,12 +906,12 @@ def main() -> None:
     """CLI entrypoint with user-friendly error message."""
     # Smart default: `munio` with no args runs config-scan
     if len(sys.argv) == 1:
+        import contextlib
+
         from munio.scan.cli import run_config_scan
 
-        try:
+        with contextlib.suppress(SystemExit, Exception):
             run_config_scan(output_format="text")
-        except (SystemExit, Exception):
-            pass
         return
 
     try:

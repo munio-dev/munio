@@ -697,11 +697,12 @@ class TestPolicy:
     def test_help_shows_options(self) -> None:
         result = runner.invoke(app, ["policy", "--help"])
         assert result.exit_code == 0
-        assert "--constraint-file" in result.output
-        assert "--check-name" in result.output
-        assert "--constraints-dir" in result.output
-        assert "--pack" in result.output
-        assert "--format" in result.output
+        clean = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+        assert "--constraint-file" in clean
+        assert "--check-name" in clean
+        assert "--constraints-dir" in clean
+        assert "--pack" in clean
+        assert "--format" in clean
 
     def test_no_args_exits_error(self) -> None:
         """Neither --constraint-file nor --check-name -> exit code 2."""
