@@ -369,7 +369,7 @@ class L7SourceAnalyzer:
 
         # 3. Detect handlers across all files
         handlers: list[Handler] = []
-        for path, pf in parsed.items():
+        for path, pf in parsed.items():  # type: ignore[attr-defined]
             try:
                 handlers.extend(self._detect_handlers(pf.tree, pf.language, pf.source, path))
             except Exception:  # noqa: PERF203 — fail-closed per tool
@@ -391,7 +391,7 @@ class L7SourceAnalyzer:
 
         # 5. File-level sweep — only for SQL injection (keeps postgres CVE detection).
         # Restricted: only fires when NO handlers detected in the file (fallback mode).
-        for path, pf in parsed.items():
+        for path, pf in parsed.items():  # type: ignore[attr-defined]
             # Only sweep files where NO handlers were detected (fallback for setRequestHandler etc.)
             file_has_handlers = any(h.file_path == path for h in handlers)
             if file_has_handlers:
