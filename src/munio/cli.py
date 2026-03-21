@@ -228,34 +228,13 @@ def create_app() -> Any:
 
     Raises ImportError if typer is not installed.
     """
-    import click
     import typer
-
-    # Expose click in module globals so deferred annotations resolve correctly
-    # (from __future__ import annotations + Python 3.14 evaluates in module scope).
-    globals()["click"] = click
 
     app = typer.Typer(
         name="munio",
         help="AI agent security toolkit — scan MCP servers, guard tool calls.",
-        invoke_without_command=True,
+        no_args_is_help=True,
     )
-
-    @app.callback(invoke_without_command=True)
-    def _default(ctx: click.Context) -> None:
-        """AI agent security toolkit — scan MCP servers, guard tool calls."""
-        if ctx.invoked_subcommand is not None:
-            return
-        # No subcommand: run config-scan as smart default
-        from munio.scan.cli import run_config_scan
-
-        try:
-            run_config_scan(output_format="text")
-        except click.exceptions.Exit as exc:
-            if exc.exit_code == 2:
-                # No configs found — show help instead
-                typer.echo(ctx.get_help())
-            raise
 
     # ── scan (from scan/cli.py) ────────────────────────────────────────
 
@@ -925,6 +904,16 @@ def _get_app() -> Any:
 
 def main() -> None:
     """CLI entrypoint with user-friendly error message."""
+    # Smart default: `munio` with no args runs config-scan
+    if len(sys.argv) == 1:
+        from munio.scan.cli import run_config_scan
+
+        try:
+            run_config_scan(output_format="text")
+        except (SystemExit, Exception):
+            pass
+        return
+
     try:
         app = _get_app()
     except ImportError:
