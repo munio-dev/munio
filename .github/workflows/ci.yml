@@ -22,7 +22,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync --locked --dev --no-install-project
+      - run: uv sync --locked --dev --no-group train --no-install-project
       - run: uv run ruff check src/ tests/
       - run: uv run ruff format --check src/ tests/
 
@@ -34,7 +34,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync --locked --dev --all-extras
+      - run: uv sync --locked --dev --no-group train --all-extras
       - run: uv run mypy src/munio/
 
   test:
@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: uv sync --locked --dev --all-extras
+      - run: uv sync --locked --dev --no-group train --all-extras
       - name: Run tests with coverage
         run: uv run coverage run -m pytest -x -q
       - name: Check coverage threshold
@@ -69,7 +69,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync --locked --dev
+      - run: uv sync --locked --dev --no-group train
       - run: uv run munio version
       - run: uv run munio scan --help
       - run: uv run munio config-scan --help

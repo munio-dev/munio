@@ -2383,19 +2383,21 @@ dev = [
     { name = "coverage" },
     { name = "httpx" },
     { name = "hypothesis" },
-    { name = "joblib" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-benchmark" },
     { name = "ruff" },
+    { name = "types-pyyaml" },
+    { name = "zensical" },
+]
+train = [
+    { name = "joblib" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sentence-transformers" },
     { name = "torch" },
     { name = "transformers" },
-    { name = "types-pyyaml" },
-    { name = "zensical" },
 ]
 
 [package.metadata]
@@ -2428,18 +2430,20 @@ dev = [
     { name = "coverage", specifier = ">=7,<8" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "hypothesis", specifier = ">=6.100,<7" },
-    { name = "joblib", specifier = ">=1.4,<2" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "pytest", specifier = ">=8,<9" },
     { name = "pytest-asyncio", specifier = ">=0.24,<1" },
     { name = "pytest-benchmark", specifier = ">=4,<5" },
     { name = "ruff", specifier = ">=0.5" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
+    { name = "zensical", specifier = ">=0.0.24" },
+]
+train = [
+    { name = "joblib", specifier = ">=1.4,<2" },
     { name = "scikit-learn", specifier = ">=1.5,<2" },
     { name = "sentence-transformers", specifier = ">=5.2.3" },
     { name = "torch", specifier = ">=2.2,<3" },
     { name = "transformers", specifier = ">=4.40,<5" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
-    { name = "zensical", specifier = ">=0.0.24" },
 ]
 
 [[package]]
