@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 from typing import Any
@@ -951,6 +952,10 @@ class TestFormatPolicyJson:
 # ── TestServeIntegration ──────────────────────────────────────────────
 
 
+@pytest.mark.skipif(
+    not importlib.util.find_spec("uvicorn"),
+    reason="uvicorn not installed",
+)
 class TestServeIntegration:
     """Test munio serve CLI integration (uvicorn mocked)."""
 

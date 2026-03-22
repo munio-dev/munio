@@ -365,13 +365,13 @@ class L7SourceAnalyzer:
             return []
 
         # 2. Build import resolver
-        self._ImportResolver(parsed)  # side-effect: validates imports
+        self._ImportResolver(parsed)  # type: ignore[arg-type]  # side-effect: validates imports
 
         # 3. Detect handlers across all files
         handlers: list[Handler] = []
-        for path, pf in parsed.items():  # type: ignore[attr-defined]
+        for path, pf in parsed.items():
             try:
-                handlers.extend(self._detect_handlers(pf.tree, pf.language, pf.source, path))
+                handlers.extend(self._detect_handlers(pf.tree, pf.language, pf.source, path))  # type: ignore[attr-defined]
             except Exception:  # noqa: PERF203 — fail-closed per tool
                 logger.warning("L7 handler detection failed for %s, skipping", path)
 
@@ -391,13 +391,13 @@ class L7SourceAnalyzer:
 
         # 5. File-level sweep — only for SQL injection (keeps postgres CVE detection).
         # Restricted: only fires when NO handlers detected in the file (fallback mode).
-        for path, pf in parsed.items():  # type: ignore[attr-defined]
+        for path, pf in parsed.items():
             # Only sweep files where NO handlers were detected (fallback for setRequestHandler etc.)
             file_has_handlers = any(h.file_path == path for h in handlers)
             if file_has_handlers:
                 continue  # Handler-scoped analysis already covered this file
             try:
-                sweep = self._file_sweep(pf.source, pf.language, path)
+                sweep = self._file_sweep(pf.source, pf.language, path)  # type: ignore[attr-defined]
                 findings.extend(sweep)
             except Exception:  # noqa: S110 — best-effort file sweep, non-critical
                 pass
@@ -465,7 +465,7 @@ class L7SourceAnalyzer:
 
             parser = parsers[lang]
             try:
-                tree = parser.parse(source)  # type: ignore[union-attr]
+                tree = parser.parse(source)  # type: ignore[union-attr,unused-ignore]
             except Exception:  # noqa: S112 — skip unparseable files
                 continue
 

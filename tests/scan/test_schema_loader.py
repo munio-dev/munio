@@ -96,7 +96,7 @@ class TestLoadFromFileEdgeCases:
         p = tmp_path / "big.json"
         p.write_text('[{"name":"t"}]')
 
-        fake_result = SimpleNamespace(st_size=20_000_000)
+        fake_result = SimpleNamespace(st_size=20_000_000, st_mode=0o100644)
         with (
             patch.object(type(p), "stat", return_value=fake_result),
             pytest.raises(SchemaLoadError, match="too large"),
