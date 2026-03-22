@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from munio.gate.protocol_models import (
     ElicitationConfig,
@@ -17,17 +18,15 @@ from munio.gate.protocol_models import (
     SamplingConfig,
     SessionConfig,
     SessionPhase,
-    ToolRegistryConfig,
     ToolSnapshot,
 )
-
 
 # ── ProtocolViolationType ────────────────────────────────────────────
 
 
 class TestProtocolViolationType:
     @pytest.mark.parametrize(
-        "member,value",
+        ("member", "value"),
         [
             (ProtocolViolationType.INIT_RACE_WINDOW, "IRWE"),
             (ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION, "CPE"),
@@ -75,7 +74,7 @@ class TestProtocolViolation:
             message="test",
             monitor="test",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             v.action = ProtocolAction.ALERT  # type: ignore[misc]
 
 
@@ -84,7 +83,7 @@ class TestProtocolViolation:
 
 class TestSessionPhase:
     @pytest.mark.parametrize(
-        "phase,value",
+        ("phase", "value"),
         [
             (SessionPhase.AWAITING_INIT, "awaiting_init"),
             (SessionPhase.INITIALIZING, "initializing"),
@@ -162,7 +161,7 @@ class TestSessionConfig:
 
     @pytest.mark.parametrize("bad_timeout", [50, 70000])
     def test_timeout_bounds(self, bad_timeout: int) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             SessionConfig(max_init_timeout_ms=bad_timeout)
 
 
@@ -178,7 +177,7 @@ class TestNotificationConfig:
 
     @pytest.mark.parametrize("bad_rate", [0, -1])
     def test_rate_bounds(self, bad_rate: int) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             NotificationConfig(max_list_changed_per_minute=bad_rate)
 
 
@@ -192,9 +191,9 @@ class TestSamplingConfig:
         assert c.max_cost_budget_usd == 1.0
 
     def test_max_depth_bounds(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             SamplingConfig(max_depth=0)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             SamplingConfig(max_depth=25)
 
 

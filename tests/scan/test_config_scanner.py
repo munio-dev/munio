@@ -770,7 +770,7 @@ class TestSCRecommendations:
 
 class TestSC001EdgeCases:
     @pytest.mark.parametrize(
-        "args,should_find,desc",
+        ("args", "should_find", "desc"),
         [
             (["@scope/pkg@1.2.3"], False, "version pinned"),
             (["@scope/pkg#v1.0.0"], False, "git tag pinned"),
@@ -778,9 +778,7 @@ class TestSC001EdgeCases:
             (["@scope/pkg"], True, "no version"),
         ],
     )
-    def test_pinning_variants(
-        self, args: list[str], should_find: bool, desc: str
-    ) -> None:
+    def test_pinning_variants(self, args: list[str], should_find: bool, desc: str) -> None:
         server = ServerConfig(name="t", source="t", command="npx", args=args)
         findings = ConfigScanner().scan_server(server)
         sc001 = [f for f in findings if f.id == "SC_001"]
@@ -792,7 +790,7 @@ class TestSC001EdgeCases:
 
 class TestSC007LocalhostVariants:
     @pytest.mark.parametrize(
-        "url,should_find,desc",
+        ("url", "should_find", "desc"),
         [
             ("http://localhost:3000", False, "localhost with port"),
             ("http://127.0.0.1:8080", False, "loopback with port"),
@@ -802,9 +800,7 @@ class TestSC007LocalhostVariants:
             ("http://127.0.0.1.evil.com", True, "IP subdomain trick"),
         ],
     )
-    def test_http_url_variants(
-        self, url: str, should_find: bool, desc: str
-    ) -> None:
+    def test_http_url_variants(self, url: str, should_find: bool, desc: str) -> None:
         server = ServerConfig(name="t", source="t", command="node", args=[url])
         findings = ConfigScanner().scan_server(server)
         sc007 = [f for f in findings if f.id == "SC_007"]
@@ -816,7 +812,7 @@ class TestSC007LocalhostVariants:
 
 class TestSC005ShellMetaEdgeCases:
     @pytest.mark.parametrize(
-        "arg,should_find,desc",
+        ("arg", "should_find", "desc"),
         [
             ("safe-arg", False, "no metacharacters"),
             ("foo;bar", True, "semicolon"),
@@ -828,9 +824,7 @@ class TestSC005ShellMetaEdgeCases:
             ("foo<<EOF", True, "heredoc"),
         ],
     )
-    def test_shell_meta_variants(
-        self, arg: str, should_find: bool, desc: str
-    ) -> None:
+    def test_shell_meta_variants(self, arg: str, should_find: bool, desc: str) -> None:
         server = ServerConfig(name="t", source="t", command="node", args=[arg])
         findings = ConfigScanner().scan_server(server)
         sc005 = [f for f in findings if f.id == "SC_005"]
@@ -842,7 +836,7 @@ class TestSC005ShellMetaEdgeCases:
 
 class TestSC009CredentialPatterns:
     @pytest.mark.parametrize(
-        "name,value,should_find,desc",
+        ("name", "value", "should_find", "desc"),
         [
             ("GITHUB_TOKEN", "ghp_" + "a" * 36, True, "GitHub PAT by name+pattern"),
             ("RANDOM_VAR", "ghp_" + "a" * 36, True, "GitHub PAT by pattern only"),

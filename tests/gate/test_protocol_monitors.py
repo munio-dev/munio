@@ -6,12 +6,9 @@ reproduce the protocol-level attacks L6 is designed to detect.
 
 from __future__ import annotations
 
-import json
 import time
 from typing import Any
 from unittest.mock import patch
-
-import pytest
 
 from munio.gate.protocol_models import (
     ElicitationConfig,
@@ -30,7 +27,6 @@ from munio.gate.protocol_monitors import (
     SessionStateMonitor,
     ToolRegistryMonitor,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -215,9 +211,7 @@ class TestSessionStateMonitor:
         mon.on_message("client_to_server", _initialize_request())
         mon.on_message(
             "server_to_client",
-            _initialize_result(
-                capabilities={"tools": {"listChanged": True}, "sampling": {}}
-            ),
+            _initialize_result(capabilities={"tools": {"listChanged": True}, "sampling": {}}),
         )
 
         assert mon.capabilities is not None
@@ -241,7 +235,9 @@ class TestSessionStateMonitor:
         msg = _jsonrpc_request("tools/call", request_id=2, params={"name": "test"})
         v = mon.on_message("client_to_server", msg)
 
-        assert any(v2.violation_type == ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION for v2 in v)
+        assert any(
+            v2.violation_type == ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION for v2 in v
+        )
 
     def test_cpe_notification_tools_list_changed_without_tools(self) -> None:
         """CPE: Server sends notifications/tools/list_changed without tools capability."""
@@ -256,7 +252,9 @@ class TestSessionStateMonitor:
         msg = _jsonrpc_notification("notifications/tools/list_changed")
         v = mon.on_message("server_to_client", msg)
 
-        assert any(v2.violation_type == ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION for v2 in v)
+        assert any(
+            v2.violation_type == ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION for v2 in v
+        )
 
     def test_reinit_attempt_in_operating_phase(self) -> None:
         """Re-initialization attempt after already operating."""
@@ -417,8 +415,7 @@ class TestNotificationMonitor:
 
         # Should have violations after exceeding limit
         assert any(
-            v.violation_type == ProtocolViolationType.NOTIFICATION_STORM_DESYNC
-            for v in violations
+            v.violation_type == ProtocolViolationType.NOTIFICATION_STORM_DESYNC for v in violations
         )
 
     def test_pttra_progress_flood(self) -> None:
@@ -434,8 +431,7 @@ class TestNotificationMonitor:
             violations.extend(mon.on_message("server_to_client", msg))
 
         assert any(
-            v.violation_type == ProtocolViolationType.PROGRESS_TIMEOUT_ABUSE
-            for v in violations
+            v.violation_type == ProtocolViolationType.PROGRESS_TIMEOUT_ABUSE for v in violations
         )
 
     def test_pttra_timeout(self) -> None:
@@ -532,8 +528,7 @@ class TestSamplingMonitor:
 
         # Third call exceeds depth=2
         assert any(
-            v2.violation_type == ProtocolViolationType.SAMPLING_RECURSIVE_AMPLIFICATION
-            for v2 in v
+            v2.violation_type == ProtocolViolationType.SAMPLING_RECURSIVE_AMPLIFICATION for v2 in v
         )
 
     def test_sral_depth_from_meta(self) -> None:
@@ -678,6 +673,9 @@ class TestElicitationMonitor:
 
     def test_domain_extraction(self) -> None:
         assert ElicitationMonitor._extract_domain("https://example.com/path") == "example.com"
-        assert ElicitationMonitor._extract_domain("http://sub.example.com:8080/path") == "sub.example.com"
+        assert (
+            ElicitationMonitor._extract_domain("http://sub.example.com:8080/path")
+            == "sub.example.com"
+        )
         assert ElicitationMonitor._extract_domain("https://user@host.com/path") == "host.com"
         assert ElicitationMonitor._extract_domain("https://EXAMPLE.COM") == "example.com"

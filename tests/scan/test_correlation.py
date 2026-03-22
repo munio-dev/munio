@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from munio.scan.models import AttackType, Finding, FindingSeverity, Layer
+from munio.scan.models import Finding, FindingSeverity, Layer
 
 
 def _l3(tool: str, cwe: str, confidence: float = 0.80) -> Finding:
@@ -20,7 +18,9 @@ def _l3(tool: str, cwe: str, confidence: float = 0.80) -> Finding:
     )
 
 
-def _l7(tool: str, cwe: str, confidence: float = 0.85, location: str = "file:index.ts:42") -> Finding:
+def _l7(
+    tool: str, cwe: str, confidence: float = 0.85, location: str = "file:index.ts:42"
+) -> Finding:
     return Finding(
         id="L7_001",
         layer=Layer.L7_SOURCE,
@@ -38,6 +38,7 @@ class TestCorrelation:
 
     def _correlate(self, findings: list[Finding]) -> list[Finding]:
         from munio.scan.layers.correlation import correlate_findings
+
         return correlate_findings(findings)
 
     def test_exact_tool_exact_cwe_confirmed(self) -> None:
@@ -45,8 +46,8 @@ class TestCorrelation:
         findings = [_l3("read_file", "CWE-22", 0.80), _l7("read_file", "CWE-22", 0.85)]
         result = self._correlate(findings)
         assert len(result) == 2
-        l3_result = [f for f in result if f.layer == Layer.L3_STATIC][0]
-        l7_result = [f for f in result if f.layer == Layer.L7_SOURCE][0]
+        l3_result = next(f for f in result if f.layer == Layer.L3_STATIC)
+        l7_result = next(f for f in result if f.layer == Layer.L7_SOURCE)
         assert l3_result.confidence > 0.80  # boosted
         assert l7_result.confidence > 0.85  # boosted
         assert "CONFIRMED" in l3_result.description
@@ -56,7 +57,7 @@ class TestCorrelation:
         """L3(run_cmd, CWE-78) + L7(<dispatch>, CWE-78) → probable."""
         findings = [_l3("run_cmd", "CWE-78"), _l7("<dispatch>", "CWE-78")]
         result = self._correlate(findings)
-        l3_result = [f for f in result if f.layer == Layer.L3_STATIC][0]
+        l3_result = next(f for f in result if f.layer == Layer.L3_STATIC)
         assert l3_result.confidence > 0.80
         assert "PROBABLE" in l3_result.description or "CONFIRMED" not in l3_result.description
 
@@ -64,7 +65,7 @@ class TestCorrelation:
         """L3(query, CWE-89) + L7(<file-sweep>, CWE-89) → weak boost."""
         findings = [_l3("query", "CWE-89", 0.75), _l7("<file-sweep>", "CWE-89", 0.60)]
         result = self._correlate(findings)
-        l3_result = [f for f in result if f.layer == Layer.L3_STATIC][0]
+        l3_result = next(f for f in result if f.layer == Layer.L3_STATIC)
         # Weak boost: +0.03
         assert l3_result.confidence >= 0.75 + 0.03 - 0.01  # small float tolerance
 
@@ -72,7 +73,7 @@ class TestCorrelation:
         """Different CWE groups → no correlation."""
         findings = [_l3("tool", "CWE-400"), _l7("tool", "CWE-78")]
         result = self._correlate(findings)
-        l3_result = [f for f in result if f.layer == Layer.L3_STATIC][0]
+        l3_result = next(f for f in result if f.layer == Layer.L3_STATIC)
         assert l3_result.confidence == 0.80  # unchanged
 
     def test_l3_only_untouched(self) -> None:
@@ -93,7 +94,7 @@ class TestCorrelation:
         """L3(CWE-78) + L7(CWE-94) → same injection group, boosted."""
         findings = [_l3("tool", "CWE-78"), _l7("tool", "CWE-94")]
         result = self._correlate(findings)
-        l3_result = [f for f in result if f.layer == Layer.L3_STATIC][0]
+        l3_result = next(f for f in result if f.layer == Layer.L3_STATIC)
         assert l3_result.confidence > 0.80  # boosted (group match)
 
     def test_confidence_capped_at_099(self) -> None:
@@ -110,8 +111,12 @@ class TestCorrelation:
     def test_non_l3_l7_findings_pass_through(self) -> None:
         """L1/L2/L5 findings pass through unchanged."""
         l1 = Finding(
-            id="L1_001", layer=Layer.L1_SCHEMA, severity=FindingSeverity.LOW,
-            tool_name="t", message="m", confidence=0.90,
+            id="L1_001",
+            layer=Layer.L1_SCHEMA,
+            severity=FindingSeverity.LOW,
+            tool_name="t",
+            message="m",
+            confidence=0.90,
         )
         result = self._correlate([l1])
         assert len(result) == 1

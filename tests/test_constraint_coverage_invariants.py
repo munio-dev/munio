@@ -107,7 +107,7 @@ class TestUniversalSsrfCoverage:
         self.patterns = _all_patterns_flat(_collect_universal_patterns())
 
     @pytest.mark.parametrize(
-        "pattern,desc",
+        ("pattern", "desc"),
         _CRITICAL_SSRF_PATTERNS,
         ids=[d for _, d in _CRITICAL_SSRF_PATTERNS],
     )
@@ -127,7 +127,7 @@ class TestUniversalCredentialCoverage:
         self.values = _all_values_flat(_collect_universal_values())
 
     @pytest.mark.parametrize(
-        "value,desc",
+        ("value", "desc"),
         _CRITICAL_CREDENTIAL_DIRS,
         ids=[d for _, d in _CRITICAL_CREDENTIAL_DIRS],
     )
@@ -147,7 +147,7 @@ class TestUniversalDangerousCommandCoverage:
         self.patterns = _all_patterns_flat(_collect_universal_patterns())
 
     @pytest.mark.parametrize(
-        "pattern,desc",
+        ("pattern", "desc"),
         _CRITICAL_COMMAND_PATTERNS,
         ids=[d for _, d in _CRITICAL_COMMAND_PATTERNS],
     )
@@ -194,7 +194,6 @@ class TestUniversalConstraintsUseWildcard:
             data = _load_yaml(f)
             if data.get("action") != "*":
                 violations.append(f"{f.name}: does not use action='*'")
-        assert not violations, (
-            "Universal constraints must use 'action: \"*\"':\n"
-            + "\n".join(f"  {v}" for v in violations)
+        assert not violations, "Universal constraints must use 'action: \"*\"':\n" + "\n".join(
+            f"  {v}" for v in violations
         )

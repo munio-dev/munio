@@ -12,6 +12,7 @@ Two proxy test levels:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import sys
 from pathlib import Path, PurePath
@@ -142,7 +143,9 @@ async def _run_proxy_e2e(
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    assert process.stdin and process.stdout and process.stderr
+    assert process.stdin
+    assert process.stdout
+    assert process.stderr
 
     # Agent reader: feed messages from test
     agent_reader = asyncio.StreamReader()
@@ -480,7 +483,10 @@ class TestLifecycleE2E:
         config_path.write_text(json.dumps(config))
 
         runner.invoke(app, ["init", "--config", str(config_path)])
-        assert PurePath(json.loads(config_path.read_text())["servers"]["myserver"]["command"]).name == "munio"
+        assert (
+            PurePath(json.loads(config_path.read_text())["servers"]["myserver"]["command"]).name
+            == "munio"
+        )
 
         runner.invoke(app, ["restore", "--config", str(config_path)])
         restored = json.loads(config_path.read_text())
@@ -521,10 +527,8 @@ async def _send_and_collect(
                     break
                 stripped = line.strip()
                 if stripped:
-                    try:
+                    with contextlib.suppress(json.JSONDecodeError):
                         responses.append(json.loads(stripped))
-                    except json.JSONDecodeError:
-                        pass
     except TimeoutError:
         process.kill()
 

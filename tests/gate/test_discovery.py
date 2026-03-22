@@ -228,11 +228,7 @@ class TestRewriteConfig:
 
     def test_writes_absolute_path_when_not_in_path(self, tmp_path: Path) -> None:
         """When 'munio' is not in PATH, writes absolute path to the binary."""
-        config_data = {
-            "mcpServers": {
-                "server1": {"command": "npx", "args": ["@foo/server"]}
-            }
-        }
+        config_data = {"mcpServers": {"server1": {"command": "npx", "args": ["@foo/server"]}}}
         config_path = tmp_path / "config.json"
         config_path.write_text(json.dumps(config_data))
 

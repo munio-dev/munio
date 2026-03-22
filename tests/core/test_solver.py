@@ -2132,7 +2132,11 @@ class TestCapabilityScopedYamlIntegration:
             ("read_file", {"path": "../../etc/passwd"}, "file-ops-safety.yaml"),
             ("write_file", {"path": "/root/.ssh/id_rsa"}, "file-ops-safety.yaml"),
             ("fetch_url", {"url": "http://169.254.169.254/"}, "web-network-safety.yaml"),
-            ("execute_query", {"sql": "1 UNION ALL SELECT password FROM users"}, "database-safety.yaml"),
+            (
+                "execute_query",
+                {"sql": "1 UNION ALL SELECT password FROM users"},
+                "database-safety.yaml",
+            ),
             ("puppeteer_evaluate", {"code": "os.system('id')"}, "code-eval-safety.yaml"),
         ],
         ids=[
@@ -2180,9 +2184,7 @@ class TestCapabilityScopedYamlIntegration:
             "safe-eval",
         ],
     )
-    def test_capability_constraint_allows_safe(
-        self, tool: str, args: dict, yaml_file: str
-    ) -> None:
+    def test_capability_constraint_allows_safe(self, tool: str, args: dict, yaml_file: str) -> None:
         from pathlib import Path
 
         yaml_path = (
@@ -2220,9 +2222,7 @@ class TestUniversalYamlIntegration:
             "credential-any-tool",
         ],
     )
-    def test_universal_blocks_any_tool(
-        self, tool: str, args: dict, yaml_file: str
-    ) -> None:
+    def test_universal_blocks_any_tool(self, tool: str, args: dict, yaml_file: str) -> None:
         from pathlib import Path
 
         yaml_path = (

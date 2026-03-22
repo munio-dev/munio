@@ -167,7 +167,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "S108"]
+"tests/**/*.py" = ["S101", "S108", "N806"]
+"tests/scan/fixtures/**/*.py" = ["S101", "S108", "S605", "S608"]
+"tests/scan/test_l2_6_multilingual.py" = ["S101", "S108", "N806", "RUF001"]
 "src/munio/cli.py" = ["T201", "B008"]
 "src/munio/server.py" = ["B008"]
 "src/munio/_composite.py" = ["S307"]

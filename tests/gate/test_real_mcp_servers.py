@@ -11,6 +11,7 @@ Marked with @pytest.mark.integration — skipped if npx is not available.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import shutil
 import sys
@@ -111,10 +112,8 @@ async def _send_and_recv(
                     break
                 stripped = line.strip()
                 if stripped:
-                    try:
+                    with contextlib.suppress(json.JSONDecodeError):
                         responses.append(json.loads(stripped))
-                    except json.JSONDecodeError:
-                        pass
     except TimeoutError:
         pass
 

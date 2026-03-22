@@ -10,21 +10,14 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import pytest
-
 from munio.gate.protocol_interceptor import ProtocolInterceptor, ProtocolResult
 from munio.gate.protocol_models import (
-    ElicitationConfig,
     NotificationConfig,
     ProtocolAction,
     ProtocolConfig,
     ProtocolViolationType,
     SamplingConfig,
-    SessionConfig,
-    SessionPhase,
-    ToolRegistryConfig,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -156,14 +149,9 @@ class TestProtocolInterceptor:
         """Integration: IRWE detected and blocked."""
         pi = ProtocolInterceptor()
 
-        r = pi.on_client_message(
-            _jsonrpc_request("tools/call", params={"name": "read_file"})
-        )
+        r = pi.on_client_message(_jsonrpc_request("tools/call", params={"name": "read_file"}))
         assert r.should_block
-        assert any(
-            v.violation_type == ProtocolViolationType.INIT_RACE_WINDOW
-            for v in r.violations
-        )
+        assert any(v.violation_type == ProtocolViolationType.INIT_RACE_WINDOW for v in r.violations)
 
     def test_cpe_blocks_unnegotiated_sampling(self) -> None:
         """Integration: CPE detected and blocked."""
@@ -190,9 +178,7 @@ class TestProtocolInterceptor:
 
         results = []
         for _ in range(5):
-            r = pi.on_server_message(
-                _jsonrpc_notification("notifications/tools/list_changed")
-            )
+            r = pi.on_server_message(_jsonrpc_notification("notifications/tools/list_changed"))
             results.append(r)
 
         blocked = [r for r in results if r.should_block]
@@ -260,8 +246,7 @@ class TestProtocolInterceptor:
         r = pi.on_server_message(_jsonrpc_result(3, {"tools": tools_v2}))
 
         assert any(
-            v.violation_type == ProtocolViolationType.TOOL_LIST_MUTATION
-            for v in r.violations
+            v.violation_type == ProtocolViolationType.TOOL_LIST_MUTATION for v in r.violations
         )
 
     def test_make_block_response(self) -> None:
@@ -300,9 +285,7 @@ class TestProtocolInterceptor:
 
         # Server sends list_changed before init and excessively
         for _ in range(3):
-            r = pi.on_server_message(
-                _jsonrpc_notification("notifications/tools/list_changed")
-            )
+            pi.on_server_message(_jsonrpc_notification("notifications/tools/list_changed"))
 
         # Should have violations from both session CPE (no tools cap) and notification storm
         # Note: session monitor CPE only fires after capabilities are known,
@@ -330,9 +313,7 @@ class TestProtocolInterceptorEdgeCases:
         pi = ProtocolInterceptor()
         _do_init(pi)
 
-        r = pi.on_server_message(
-            _jsonrpc_request("sampling/createMessage", request_id=10, params={})
-        )
+        pi.on_server_message(_jsonrpc_request("sampling/createMessage", request_id=10, params={}))
         # Should not crash, but may trigger CPE if sampling not declared
         # (since we initialized with tools only)
         # This is expected behavior

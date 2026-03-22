@@ -258,9 +258,7 @@ class TestSanitizerRecognition:
         analyzer = L7(source_dir=FIXTURES)
         findings = analyzer.analyze([])
         param_findings = [
-            f
-            for f in findings
-            if "safe_parameterized_query.js" in f.location and f.cwe == "CWE-89"
+            f for f in findings if "safe_parameterized_query.js" in f.location and f.cwe == "CWE-89"
         ]
         assert len(param_findings) == 0
 

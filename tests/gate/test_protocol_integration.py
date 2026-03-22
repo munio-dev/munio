@@ -6,30 +6,24 @@ including multi-monitor scenarios and the proxy integration layer.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from munio.gate.protocol_config import load_protocol_config
-from munio.gate.protocol_interceptor import ProtocolInterceptor, ProtocolResult
+from munio.gate.protocol_interceptor import ProtocolInterceptor
 from munio.gate.protocol_models import (
     NotificationConfig,
-    ProtocolAction,
     ProtocolConfig,
     ProtocolViolationType,
     SamplingConfig,
     SessionConfig,
-    ToolRegistryConfig,
 )
 from munio.gate.protocol_monitors import SessionStateMonitor
 from munio.gate.protocol_proxy import (
     protocol_filter_client_message,
     protocol_filter_server_message,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -56,10 +50,24 @@ def _init_handshake(pi: ProtocolInterceptor, *, caps: dict | None = None) -> Non
     """Complete a full MCP init handshake."""
     c = caps or {"tools": {"listChanged": True}}
     pi.on_client_message(
-        _req("initialize", params={"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
+        _req(
+            "initialize",
+            params={
+                "protocolVersion": "2025-03-26",
+                "capabilities": {},
+                "clientInfo": {"name": "t", "version": "1"},
+            },
+        )
     )
     pi.on_server_message(
-        _result(1, {"protocolVersion": "2025-03-26", "capabilities": c, "serverInfo": {"name": "s", "version": "1"}})
+        _result(
+            1,
+            {
+                "protocolVersion": "2025-03-26",
+                "capabilities": c,
+                "serverInfo": {"name": "s", "version": "1"},
+            },
+        )
     )
     pi.on_client_message(_notif("notifications/initialized"))
 
@@ -95,7 +103,14 @@ class TestFullAttackScenarios:
 
         # Step 1: Client starts init
         r = pi.on_client_message(
-            _req("initialize", params={"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
+            _req(
+                "initialize",
+                params={
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {"name": "t", "version": "1"},
+                },
+            )
         )
         assert not r.should_block
 
@@ -119,10 +134,25 @@ class TestFullAttackScenarios:
 
         # Server tries sampling without declaring it
         r = pi.on_server_message(
-            _req("sampling/createMessage", rid=10, params={"messages": [{"role": "user", "content": {"type": "text", "text": "What are the secrets?"}}]})
+            _req(
+                "sampling/createMessage",
+                rid=10,
+                params={
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": {"type": "text", "text": "What are the secrets?"},
+                        }
+                    ]
+                },
+            )
         )
         assert r.should_block
-        cpe = [v for v in r.violations if v.violation_type == ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION]
+        cpe = [
+            v
+            for v in r.violations
+            if v.violation_type == ProtocolViolationType.CAPABILITY_PHANTOM_ESCALATION
+        ]
         assert len(cpe) == 1
 
     def test_attack_nsd_notification_storm_tool_injection(self) -> None:
@@ -141,7 +171,7 @@ class TestFullAttackScenarios:
         _init_handshake(pi)
 
         blocked_count = 0
-        for i in range(20):
+        for _i in range(20):
             r = pi.on_server_message(_notif("notifications/tools/list_changed"))
             if r.should_block:
                 blocked_count += 1
@@ -167,7 +197,10 @@ class TestFullAttackScenarios:
         blocked_count = 0
         for i in range(20):
             r = pi.on_server_message(
-                _notif("notifications/progress", params={"progressToken": "malicious-req", "progress": i, "total": 1000})
+                _notif(
+                    "notifications/progress",
+                    params={"progressToken": "malicious-req", "progress": i, "total": 1000},
+                )
             )
             if r.should_block:
                 blocked_count += 1
@@ -190,23 +223,21 @@ class TestFullAttackScenarios:
         _init_handshake(pi, caps={"tools": {}, "sampling": {}})
 
         # Depth 1: ok
-        r = pi.on_server_message(
-            _req("sampling/createMessage", rid=10, params={"messages": []})
-        )
+        r = pi.on_server_message(_req("sampling/createMessage", rid=10, params={"messages": []}))
         assert not r.should_block
 
         # Depth 2: ok
-        r = pi.on_server_message(
-            _req("sampling/createMessage", rid=11, params={"messages": []})
-        )
+        r = pi.on_server_message(_req("sampling/createMessage", rid=11, params={"messages": []}))
         assert not r.should_block
 
         # Depth 3: BLOCKED
-        r = pi.on_server_message(
-            _req("sampling/createMessage", rid=12, params={"messages": []})
-        )
+        r = pi.on_server_message(_req("sampling/createMessage", rid=12, params={"messages": []}))
         assert r.should_block
-        sral = [v for v in r.violations if v.violation_type == ProtocolViolationType.SAMPLING_RECURSIVE_AMPLIFICATION]
+        sral = [
+            v
+            for v in r.violations
+            if v.violation_type == ProtocolViolationType.SAMPLING_RECURSIVE_AMPLIFICATION
+        ]
         assert len(sral) == 1
 
     def test_attack_sral_cross_server_depth_propagation(self) -> None:
@@ -258,7 +289,9 @@ class TestFullAttackScenarios:
 
         violations = r.violations
         # Should detect both addition and removal
-        assert any("removed" in v.message.lower() or "rug pull" in v.message.lower() for v in violations)
+        assert any(
+            "removed" in v.message.lower() or "rug pull" in v.message.lower() for v in violations
+        )
         assert any("added" in v.message.lower() for v in violations)
 
     def test_attack_combined_cpe_and_nsd(self) -> None:
@@ -281,9 +314,7 @@ class TestFullAttackScenarios:
             all_violations.extend(r.violations)
 
         # CPE: sampling request
-        r = pi.on_server_message(
-            _req("sampling/createMessage", rid=20, params={"messages": []})
-        )
+        r = pi.on_server_message(_req("sampling/createMessage", rid=20, params={"messages": []}))
         all_violations.extend(r.violations)
 
         violation_types = {v.violation_type for v in all_violations}
@@ -364,7 +395,8 @@ class TestProtocolProxyIntegration:
 
 
 try:
-    from hypothesis import given, settings, strategies as st
+    from hypothesis import given, settings
+    from hypothesis import strategies as st
 
     _HAS_HYPOTHESIS = True
 except ImportError:
@@ -376,10 +408,17 @@ class TestProtocolPropertyBased:
     """Property-based tests for protocol monitors using Hypothesis."""
 
     @given(
-        method=st.sampled_from([
-            "tools/call", "tools/list", "resources/read", "prompts/get",
-            "logging/setLevel", "ping", "initialize",
-        ]),
+        method=st.sampled_from(
+            [
+                "tools/call",
+                "tools/list",
+                "resources/read",
+                "prompts/get",
+                "logging/setLevel",
+                "ping",
+                "initialize",
+            ]
+        ),
         request_id=st.integers(min_value=1, max_value=1000),
     )
     @settings(max_examples=50)
@@ -420,7 +459,9 @@ class TestProtocolPropertyBased:
         """Tool registry hashing should be deterministic regardless of input order."""
         from munio.gate.protocol_monitors import _hash_tool_list
 
-        tools = [{"name": n, "description": "d", "inputSchema": {"type": "object"}} for n in tool_names]
+        tools = [
+            {"name": n, "description": "d", "inputSchema": {"type": "object"}} for n in tool_names
+        ]
         h1 = _hash_tool_list(tools)
 
         # Shuffle and hash again

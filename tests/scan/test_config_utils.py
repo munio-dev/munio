@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from munio.scan._config_utils import get_config_candidates, parse_servers, read_config_file
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ── read_config_file ─────────────────────────────────────────────────
 
@@ -85,7 +87,7 @@ class TestParseServers:
         assert len(result) == 0
 
     @pytest.mark.parametrize(
-        "disabled_val,expected_count,desc",
+        ("disabled_val", "expected_count", "desc"),
         [
             (False, 1, "disabled=False not skipped"),
             (None, 1, "disabled missing (None in dict) not skipped"),

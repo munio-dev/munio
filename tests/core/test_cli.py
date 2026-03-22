@@ -1024,12 +1024,7 @@ class TestMultiPack:
         pack_dir = tmp_path / "generic"
         pack_dir.mkdir()
         (pack_dir / "rule.yaml").write_text(
-            "name: test-deny\n"
-            "check:\n"
-            "  type: denylist\n"
-            "  field: url\n"
-            "  values:\n"
-            "    - evil.com\n"
+            "name: test-deny\ncheck:\n  type: denylist\n  field: url\n  values:\n    - evil.com\n"
         )
         result = runner.invoke(
             app,

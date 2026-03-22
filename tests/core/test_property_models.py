@@ -54,10 +54,18 @@ class TestConstraintCheckValidatorProperties:
             ConstraintCheck(type=CheckType.DENYLIST, field="url", values=values)
 
     @given(
-        values=st.lists(st.text(min_size=1, max_size=20, alphabet=st.characters(
-            categories=("L", "N", "P", "S", "Z"),
-            exclude_characters="\x00",
-        )), min_size=1, max_size=5),
+        values=st.lists(
+            st.text(
+                min_size=1,
+                max_size=20,
+                alphabet=st.characters(
+                    categories=("L", "N", "P", "S", "Z"),
+                    exclude_characters="\x00",
+                ),
+            ),
+            min_size=1,
+            max_size=5,
+        ),
         match=st_non_regex_match_mode,
     )
     def test_denylist_accepts_valid_values(self, values: list[str], match: MatchMode) -> None:
