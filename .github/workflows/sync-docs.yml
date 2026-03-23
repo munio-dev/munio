@@ -20,12 +20,12 @@ jobs:
           repositories: munio.dev
 
       - name: Checkout munio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: munio
 
       - name: Checkout munio.dev
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: munio-dev/munio.dev
           ref: dev
