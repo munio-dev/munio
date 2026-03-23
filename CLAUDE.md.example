@@ -21,6 +21,19 @@
 - Tests: `tests/core/`, `tests/scan/`, `tests/gate/`
 - Constraints: `constraints/` at repo root
 
+## Release Process
+
+Releases are fully automated via `.github/workflows/release.yml`:
+
+1. Bump `version` in `pyproject.toml`
+2. Commit: `git commit -m "release: munio vX.Y.Z"`
+3. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
+4. CI runs all tests → build → publish to PyPI → create GitHub Release
+
+PyPI trusted publisher is configured (munio-dev/munio, release.yml, pypi environment).
+
+Do NOT manually run `twine upload` or `gh release create` — the workflow handles everything.
+
 ## Security Rules
 
 When writing or modifying code in this project, follow these rules.
