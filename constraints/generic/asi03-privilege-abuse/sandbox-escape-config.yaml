@@ -1,0 +1,14 @@
+name: generic-sandbox-escape-config
+description: "Detect configuration changes that escape sandbox/isolation boundaries"
+tier: 1
+actions: ["*config*", "*settings*", "*preferences*", "*env*"]
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    - "\\b(sandbox|isolation|container)\\s*[=:]\\s*[\"']?(off|false|disabled|none|host)[\"']?"
+    - "\\bhost\\s*[=:]\\s*[\"']?(gateway|true|direct)[\"']?"
+    - "\\b(network_mode|net)\\s*[=:]\\s*[\"']?host[\"']?"
+  case_sensitive: false
+on_violation: warn
+severity: high

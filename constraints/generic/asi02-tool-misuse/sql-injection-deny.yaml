@@ -1,0 +1,24 @@
+name: sql-injection-deny
+description: "Block SQL injection patterns in tool arguments"
+category: ASI02  # Tool Misuse
+tier: 1
+action: "*"
+check:
+  type: regex_deny
+  field: query
+  patterns:
+    - "(?i)DROP\\s+TABLE"
+    - "(?i)DELETE\\s+FROM\\s+\\w+\\s*;?\\s*$"
+    - "(?i);\\s*DROP\\s+"
+    - "(?i)UNION\\s+SELECT"
+    - "(?i)OR\\s+1\\s*=\\s*1"
+    - "(?i)'\\s*OR\\s+'"
+    - "(?i)--\\s*$"
+    - "(?i);\\s*SLEEP\\s*\\("
+    - "(?i);\\s*WAITFOR\\s+DELAY"
+    - "(?i);\\s*BENCHMARK\\s*\\("
+    - "(?i);\\s*PG_SLEEP\\s*\\("
+    - "(?i)SLEEP\\s*\\(\\s*\\d"
+    - "(?i)WAITFOR\\s+DELAY\\s+'"
+on_violation: block
+severity: critical

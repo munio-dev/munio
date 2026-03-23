@@ -1,0 +1,15 @@
+name: openclaw-sandbox-escape-host-mode
+description: "Block config changes that escape container to host execution (CVE-2026-25253 step 6)"
+tier: 1
+action: config.patch
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    - "\\bhost\\s*:\\s*[\"']?gateway[\"']?"
+    - "\\btools\\.exec\\.host\\b"
+    - "\\bsandbox\\s*:\\s*[\"']?(off|false|disabled|none)[\"']?"
+    - "\\bisolation\\s*:\\s*[\"']?(off|false|disabled|none)[\"']?"
+  case_sensitive: false
+on_violation: block
+severity: critical

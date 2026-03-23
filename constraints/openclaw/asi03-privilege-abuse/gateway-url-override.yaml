@@ -1,0 +1,15 @@
+name: openclaw-gateway-url-override
+description: "Block gateway URL changes that redirect to attacker-controlled servers (CVE-2026-25253 step 1)"
+tier: 1
+actions: ["config.patch", "config.set", "config.update"]
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    - "\\bgatewayUrl\\b"
+    - "\\bgateway_url\\b"
+    - "\\bwebsocket_url\\b"
+    - "\\bwss?://[^\\s]+"
+  case_sensitive: false
+on_violation: block
+severity: critical

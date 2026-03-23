@@ -1,0 +1,12 @@
+name: max-spend-per-request
+description: "Limit financial spend per single tool call to $100"
+category: ASI02  # Tool Misuse
+tier: 1
+action: "*"
+check:
+  type: threshold
+  field: cost
+  max: 100
+  unit: USD
+on_violation: block
+severity: high

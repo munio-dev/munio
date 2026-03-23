@@ -1,0 +1,66 @@
+name: capability-database-safety
+description: "Block SQL injection patterns in database tools"
+category: ASI02
+tier: 1
+actions:
+  # Specific database tool patterns — not generic CRUD words
+  - "*sql*"
+  - "*query*"
+  - "*database*"
+  - "*_db"
+  - "*_db_*"
+  - "db_*"
+  - "*postgres*"
+  - "*mysql*"
+  - "*sqlite*"
+  - "*mongo*"
+  - "*redis*"
+  - "*dynamo*"
+  - "pg_*"
+  - "*_pg_*"
+  - "*_table"
+  - "*_tables"
+  - "create_table*"
+  - "drop_table*"
+  - "list_table*"
+  - "describe_table*"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    # Classic SQL injection
+    - "'\\s*(OR|AND)\\s+['\"]?\\d+['\"]?\\s*=\\s*['\"]?\\d+"
+    - "'\\s*;\\s*(DROP|ALTER|TRUNCATE|DELETE|INSERT|UPDATE|CREATE|EXEC|EXECUTE)\\b"
+    - "\\bUNION\\s+(ALL\\s+)?SELECT\\b"
+    # Stacked queries with dangerous commands
+    - ";\\s*(DROP|ALTER|TRUNCATE)\\s+(TABLE|DATABASE|SCHEMA|INDEX)\\b"
+    - ";\\s*DELETE\\s+FROM\\b"
+    # Time-based blind injection
+    - "\\bSLEEP\\s*\\("
+    - "\\bWAITFOR\\s+DELAY\\b"
+    - "\\bBENCHMARK\\s*\\("
+    - "\\bPG_SLEEP\\s*\\("
+    # System command execution via SQL
+    - "\\bEXEC\\s+xp_cmdshell\\b"
+    - "\\bEXEC\\s+sp_executesql\\b"
+    - "\\bINTO\\s+OUTFILE\\b"
+    - "\\bINTO\\s+DUMPFILE\\b"
+    - "\\bLOAD_FILE\\s*\\("
+    # Information schema enumeration
+    - "\\bINFORMATION_SCHEMA\\b"
+    - "\\bSYS\\.OBJECTS\\b"
+    - "\\bPG_CATALOG\\b"
+    # Privilege escalation via SQL
+    - ";\\s*GRANT\\s+"
+    - ";\\s*REVOKE\\s+"
+    # File read/write via SQL
+    - ";\\s*COPY\\s+.*\\bTO\\b"
+    - "\\bSELECT\\s+.*\\bINTO\\s+OUTFILE\\b"
+    # MongoDB code execution
+    - "\\$where\\b"
+    - "\\$function\\b"
+    - "\\$accumulator\\b"
+  case_sensitive: false
+on_violation: block
+severity: critical
+enabled: true

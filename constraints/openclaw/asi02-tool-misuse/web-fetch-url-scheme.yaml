@@ -1,0 +1,14 @@
+name: openclaw-web-fetch-url-scheme
+description: "Only allow HTTPS URLs for web_fetch (block HTTP and other schemes)"
+category: ASI02  # Tool Misuse
+tier: 1
+action: web_fetch
+check:
+  type: allowlist
+  field: url
+  values:
+    - "https://"
+  match: prefix
+  case_sensitive: false
+on_violation: block
+severity: high

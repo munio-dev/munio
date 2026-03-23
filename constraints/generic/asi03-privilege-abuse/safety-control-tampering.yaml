@@ -1,0 +1,25 @@
+name: generic-safety-control-tampering
+description: "Detect tool calls that disable, weaken, or bypass safety controls"
+tier: 1
+actions:
+  - "*approval*"
+  - "*approvals*"
+  - "*.approvals.*"
+  - "*safety*"
+  - "*security.set*"
+  - "*security.update*"
+  - "*security.patch*"
+  - "*guardrail*"
+  - "*guard.set*"
+  - "*guard.update*"
+  - "*permission*set*"
+  - "*permission*update*"
+  - "*privilege*"
+check:
+  type: regex_deny
+  field: "*"
+  patterns:
+    - "\\b(off|disable|disabled|bypass|skip|none|false|no|0)\\b"
+  case_sensitive: false
+on_violation: warn
+severity: high

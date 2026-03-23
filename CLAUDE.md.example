@@ -1,0 +1,49 @@
+# Project Guidelines
+
+## Code Style
+
+- All documentation, comments, and docstrings must be in English
+- Use `uv run` for all commands (never bare `python` or `pip`)
+- Use Conventional Commits for commit messages (`feat:`, `fix:`, `docs:`, etc.)
+
+## Tests
+
+- Use `@pytest.mark.parametrize` instead of duplicating similar test methods
+- Group related tests in test classes (`class TestXxx:`)
+
+## Project Structure
+
+- Single package: `munio` (flat layout at `src/munio/`)
+- Single pyproject.toml at root
+- Single CLI entry point: `munio` (`munio scan`, `munio check`, `munio gate`, `munio serve`, `munio policy`, `munio audit`, `munio init`, `munio status`, `munio restore`, `munio stats`, `munio version`)
+- Public API: `from munio import Guard, Verifier`
+- Error classes: MunioError
+- Tests: `tests/core/`, `tests/scan/`, `tests/gate/`
+- Constraints: `constraints/` at repo root
+
+## Security Rules
+
+When writing or modifying code in this project, follow these rules.
+
+### Error handling
+- NEVER use `str(exc)` in HTTP responses or data returned to callers. Log the exception, return a generic message.
+- NEVER return `[]` from an `except` block in solver/verifier/adapter code — this is fail-open.
+- All adapters and server endpoints must be fail-closed: `except Exception` → block (not skip).
+
+### Type safety
+- ALWAYS check `isinstance(x, bool)` BEFORE `isinstance(x, int)`.
+- NEVER use `str(None)` or `str(list)`.
+
+### Z3 / solver
+- When a COMPOSITE expression contains `/`, ALL Z3 variables MUST be `z3.Real()`.
+- ALL divisor variables MUST have `z3.Not(var == 0)` constraints.
+
+### String handling
+- ALL user-provided string values MUST pass through `_sanitize_string()` before matching.
+- ALWAYS `casefold()` BOTH sides before `fnmatch.fnmatchcase()`.
+- ONLY use `yaml.safe_load()` — NEVER `yaml.load()`.
+
+### HTTP / API
+- CORS default MUST be empty list `[]` — NEVER `"*"`.
+- HTTP request models use `extra="ignore"`, NOT `extra="forbid"`.
+- Health/info endpoints MUST NOT expose constraint details.

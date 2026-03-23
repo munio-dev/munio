@@ -1,0 +1,14 @@
+name: openclaw-exec-no-elevated
+description: "Block elevated/root execution in OpenClaw exec tool"
+category: ASI02  # Tool Misuse
+tier: 1
+action: exec
+check:
+  type: denylist
+  field: elevated
+  values:
+    - "true"
+  match: exact
+  case_sensitive: false
+on_violation: block
+severity: critical

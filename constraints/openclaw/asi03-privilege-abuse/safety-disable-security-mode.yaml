@@ -1,0 +1,12 @@
+name: openclaw-safety-disable-security-mode
+description: "Block weakening security approval mode (CVE-2026-25253 step 5)"
+tier: 1
+action: exec.approvals.set
+check:
+  type: denylist
+  field: security
+  values: ["full", "all", "bypass", "off", "disabled", "none"]
+  match: exact
+  case_sensitive: false
+on_violation: block
+severity: critical

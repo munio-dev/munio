@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Python dependencies (uv)
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "coverage"
+      production:
+        patterns:
+          - "pydantic"
+          - "pyyaml"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    open-pull-requests-limit: 10
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "ci"

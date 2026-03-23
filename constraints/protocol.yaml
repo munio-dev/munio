@@ -1,0 +1,80 @@
+# L6 Protocol Analysis Configuration
+#
+# This file configures munio's runtime protocol-level monitoring.
+# Place it in the constraints directory (alongside generic/, openclaw/).
+#
+# All settings have secure defaults. Override only what you need.
+
+protocol:
+  # Master switch for L6 protocol monitoring
+  enabled: true
+
+  # Session lifecycle monitoring
+  session:
+    # Block tool calls before the MCP initialization handshake completes.
+    # Prevents IRWE (Init Race Window Exploitation) attacks.
+    require_initialization: true
+
+    # Maximum time (ms) to wait for InitializeResult after the client
+    # sends an initialize request. Alerts if exceeded.
+    max_init_timeout_ms: 5000
+
+    # Block server methods that reference capabilities not declared
+    # in InitializeResult. Prevents CPE (Capability Phantom Escalation).
+    block_capability_escalation: true
+
+  # Notification rate limiting
+  notifications:
+    # Max notifications/tools/list_changed per minute.
+    # Prevents NSD (Notification Storm Desync) attacks where a malicious
+    # server floods list_changed to force re-fetching tool definitions
+    # that may have been modified.
+    max_list_changed_per_minute: 10
+
+    # Max progress notifications per single request (by progressToken).
+    # Prevents PTTRA (Progress Token Timeout Resource Abuse).
+    max_progress_per_request: 100
+
+    # Force-timeout (ms) a request that only sends progress notifications
+    # without ever completing. Prevents indefinite resource hold.
+    progress_timeout_ms: 120000
+
+  # Sampling recursion depth tracking
+  sampling:
+    # Maximum recursive sampling depth across servers.
+    # Prevents SRAL (Sampling Recursive Amplification Loop).
+    # When server A's sampling response triggers a tool call to server B
+    # which triggers another sampling request, this counter increments.
+    max_depth: 3
+
+    # Maximum estimated cost budget (USD) for a sampling chain.
+    # Not yet enforced -- reserved for future token cost tracking.
+    max_cost_budget_usd: 1.0
+
+  # Elicitation phishing detection
+  elicitation:
+    # Domains allowed for URL-mode elicitation requests.
+    # Empty list means all URL elicitations trigger alert.
+    # Prevents ECPC (Elicitation via Credential Phishing Pages).
+    allowed_domains:
+      - github.com
+      - login.microsoftonline.com
+      - accounts.google.com
+
+    # Always require user approval for elicitation requests containing
+    # URL-type fields (format: uri/url/iri in requestedSchema).
+    require_approval_for_url_mode: true
+
+  # Tool list integrity monitoring
+  tool_registry:
+    # Alert/block when tools are added, removed, or modified mid-session.
+    # Prevents tool injection ("rug pull") attacks.
+    detect_mutations: true
+
+    # If true, new tools added mid-session only trigger ALERT (not BLOCK).
+    # Set to true if your server legitimately adds tools dynamically.
+    allow_additions: false
+
+    # If true, tool removals mid-session only trigger ALERT (not BLOCK).
+    # Set to true if your server legitimately removes tools dynamically.
+    allow_removals: false

@@ -1,0 +1,15 @@
+name: openclaw-edit-path-traversal
+description: "Block path traversal and absolute paths in edit tool"
+category: ASI05  # Code Execution / File System
+tier: 1
+action: edit
+check:
+  type: regex_deny
+  field: path
+  patterns:
+    - "\\.\\."
+    - "^/"
+    - "^~"
+  case_sensitive: true
+on_violation: block
+severity: critical

@@ -1,0 +1,51 @@
+name: Sync docs to munio.dev
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate App token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: munio-dev
+          repositories: munio.dev
+
+      - name: Checkout munio
+        uses: actions/checkout@v4
+        with:
+          path: munio
+
+      - name: Checkout munio.dev
+        uses: actions/checkout@v4
+        with:
+          repository: munio-dev/munio.dev
+          ref: dev
+          token: ${{ steps.app-token.outputs.token }}
+          path: munio.dev
+
+      - name: Sync docs
+        run: |
+          cd munio.dev
+          ./scripts/sync-docs.sh "$GITHUB_WORKSPACE/munio"
+
+      - name: Commit and push
+        run: |
+          cd munio.dev
+          git config user.name "munio-docs-sync[bot]"
+          git config user.email "bot@munio.dev"
+          if git diff --quiet; then
+            echo "No docs changes to commit"
+            exit 0
+          fi
+          git add src/content/docs/
+          git commit -m "docs: sync from munio/docs"
+          git push origin dev

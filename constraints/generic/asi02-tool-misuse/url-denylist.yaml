@@ -1,0 +1,18 @@
+name: block-dangerous-urls
+description: "Block HTTP requests to known dangerous domains"
+category: ASI02  # Tool Misuse
+tier: 1  # auto-detected: pure string matching
+action: http_request
+check:
+  type: denylist
+  field: url
+  values:
+    - "evil.com"
+    - "malware.org"
+    - "phishing.net"
+    - "c2-server.io"
+    - "exfil.attacker.com"
+  match: contains
+  case_sensitive: false
+on_violation: block
+severity: critical

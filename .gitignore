@@ -1,0 +1,78 @@
+# ── Private (all internal/sensitive files in one place) ──────────
+_private/
+tests/red_team/
+research/
+docs/design/
+CLAUDE.md
+
+# ── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ────────────────────────────────────────
+.venv/
+venv/
+ENV/
+
+# ── uv ──────────────────────────────────────────────────────────
+.python-version
+
+# ── IDE ─────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Testing ─────────────────────────────────────────────────────
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+.benchmarks/
+
+# ── Ruff ────────────────────────────────────────────────────────
+.ruff_cache/
+
+# ── Distribution ────────────────────────────────────────────────
+*.whl
+*.tar.gz
+
+# ── Environment ─────────────────────────────────────────────────
+.env
+.env.*
+
+# ── Docs build ──────────────────────────────────────────────────
+site/
+
+# ── Z3 artifacts ────────────────────────────────────────────────
+*.smt2
+*.z3-trace
+
+# ── ML model cache ──────────────────────────────────────────────
+.munio/
+
+# ── Tool configs (MCP servers, AI tools) ────────────────────────
+.claude/
+.codeindex/
+.docdex/
+.dollhousemcp/
+.snowfakery-mcp/
+.wayy-ops/
+.cache/
+
+# ── OS ──────────────────────────────────────────────────────────
+*.png
+*.db
+*.log
+Thumbs.db

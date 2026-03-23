@@ -1,0 +1,16 @@
+name: no-eval-exec
+description: "Block eval(), exec(), compile() and other code execution primitives"
+category: ASI05  # Unexpected Code Execution
+tier: 1
+action: execute_command
+check:
+  type: regex_deny
+  field: command
+  patterns:
+    - "eval\\s*\\("
+    - "exec\\s*\\("
+    - "compile\\s*\\("
+    - "__import__\\s*\\("
+    - "importlib\\.import_module"
+on_violation: block
+severity: critical

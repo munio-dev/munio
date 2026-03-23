@@ -1,0 +1,85 @@
+name: capability-web-network-safety
+description: "Block SSRF and internal network access in web/network tools"
+category: ASI02
+tier: 1
+actions:
+  # Specific network/web tool patterns — not generic words like "get"
+  - "*fetch*"
+  - "*navigate*"
+  - "*browse*"
+  - "*http*"
+  - "*url*"
+  - "*web*"
+  - "*scrape*"
+  - "*crawl*"
+  - "*curl*"
+  - "*wget*"
+  - "*request_url*"
+  - "*http_request*"
+  - "*http_get*"
+  - "*http_post*"
+  - "*http_put*"
+  - "*api_call*"
+  - "*api_request*"
+  - "*call_api*"
+  - "*web_search*"
+  - "*search_web*"
+  - "*goto*"
+  - "*visit*"
+  - "*load_url*"
+  - "*load_page*"
+  - "*open_url*"
+  # Bare tool names for network operations
+  - "request"
+  - "download"
+  - "*download*"
+  - "graphql"
+  - "*graphql*"
+  - "*grpc*"
+check:
+  type: denylist
+  field: "*"
+  values:
+    # Cloud metadata endpoints
+    - "169.254.169.254"
+    - "169.254.170.2"
+    - "metadata.google.internal"
+    - "kubernetes.default"
+    # Loopback addresses
+    - "127.0.0.1"
+    - "://localhost"
+    - "0.0.0.0"
+    - "[::1]"
+    - "::ffff:127.0.0.1"
+    # Private network ranges
+    - "://10."
+    - "://172.16."
+    - "://172.17."
+    - "://172.18."
+    - "://172.19."
+    - "://172.20."
+    - "://172.21."
+    - "://172.22."
+    - "://172.23."
+    - "://172.24."
+    - "://172.25."
+    - "://172.26."
+    - "://172.27."
+    - "://172.28."
+    - "://172.29."
+    - "://172.30."
+    - "://172.31."
+    - "://192.168."
+    # Dangerous schemes
+    - "file://"
+    - "gopher://"
+    - "ftp://"
+    - "javascript:"
+    - "dict://"
+    - "ldap://"
+    - "tftp://"
+  match: contains
+  case_sensitive: false
+on_violation: block
+severity: critical
+enabled: true

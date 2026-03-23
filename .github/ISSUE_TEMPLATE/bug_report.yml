@@ -1,0 +1,68 @@
+name: Bug Report
+description: Report a bug in munio
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of the bug.
+      placeholder: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the behavior.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraint
+    attributes:
+      label: Constraint YAML (if applicable)
+      description: Paste the constraint definition involved.
+      render: yaml
+
+  - type: input
+    id: version
+    attributes:
+      label: munio version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python version
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+        - "3.14"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: z3-installed
+    attributes:
+      label: Z3 solver installed?
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output / traceback
+      render: shell

@@ -1,0 +1,12 @@
+name: openclaw-safety-disable-approvals
+description: "Block disabling execution approval requirements (CVE-2026-25253 step 5)"
+tier: 1
+action: exec.approvals.set
+check:
+  type: denylist
+  field: ask
+  values: ["off", "false", "no", "never", "disable", "disabled", "none", "0"]
+  match: exact
+  case_sensitive: false
+on_violation: block
+severity: critical

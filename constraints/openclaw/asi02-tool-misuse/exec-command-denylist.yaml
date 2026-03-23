@@ -1,0 +1,68 @@
+name: openclaw-exec-command-denylist
+description: "Block dangerous shell commands in OpenClaw exec tool"
+category: ASI02  # Tool Misuse
+tier: 1
+action: exec
+check:
+  type: regex_deny
+  field: command
+  patterns:
+    # Destructive file operations
+    - "rm\\s+(-[a-zA-Z]*f[a-zA-Z]*\\s+|--force\\s+)?/"
+    - "rm\\s+-[a-zA-Z]*r[a-zA-Z]*f"
+    - "mkfs\\."
+    - "dd\\s+.*of=/dev/"
+    - "\\bfind\\s+.*-delete"
+    - "\\bfind\\s+.*-exec\\s+rm"
+    # Pipe to shell/interpreter
+    - "\\|\\s*(ba|z|da|k|fi)?sh\\b"
+    - "\\|\\s*(python|perl|ruby|node)\\b"
+    # Download-and-execute
+    - "curl\\s+.*-o\\s+.*&&.*sh\\b"
+    - "wget\\s+.*-O\\s+.*&&.*sh\\b"
+    # Scripting language one-liners
+    - "\\bpython[23]?\\s+-(c|m)\\s+"
+    - "\\bperl\\s+-e\\s+"
+    - "\\bruby\\s+-e\\s+"
+    - "\\bnode\\s+-e\\s+"
+    - "\\bphp\\s+-r\\s+"
+    # Permissions / privilege escalation
+    - "chmod\\s+(777|666|4[0-7]{3})"
+    - "chmod\\s+\\+s"
+    - "chown\\s+root"
+    - "sudo\\s+"
+    # Network tools (reverse shell / exfiltration)
+    - "\\bnc\\s+.*-e\\s+"
+    - "\\bncat\\s+.*-e\\s+"
+    - "\\bsocat\\b"
+    - "\\bnmap\\b"
+    - "\\btelnet\\s+"
+    - "\\bssh\\s+.*@"
+    - "\\bscp\\s+"
+    - "\\bsftp\\s+"
+    # Docker / container escape
+    - "\\bdocker\\s+(run|exec|cp|build)\\b"
+    - "\\bnsenter\\b"
+    - "\\bmount\\s+"
+    # System commands (command-position only to reduce false positives)
+    - "(^|[;&|]\\s*)shutdown(\\s|$)"
+    - "(^|[;&|]\\s*)reboot(\\s|$)"
+    - "(^|[;&|]\\s*)halt(\\s|$)"
+    # Crontab modification (not -l which is read-only)
+    - "crontab\\s+-(e|r|i)"
+    # Environment hijacking
+    - "\\bexport\\s+(PATH|LD_PRELOAD|LD_LIBRARY_PATH|PYTHONPATH|NODE_PATH)="
+    # Data exfiltration: reading sensitive files via exec (bypasses read-path-denylist)
+    - "\\b(cat|head|tail|less|more|xxd|strings|base64)\\s+.*(\\.env|/etc/(passwd|shadow|hosts)|\\.(ssh|aws|gnupg)/|\\.git/config)"
+    # Data exfiltration: dumping environment variables (often contain secrets)
+    - "(^|[;&|]\\s*)(env|printenv|set|declare\\s+-x)(\\s|$|\\s*\\|)"
+    # Data exfiltration: HTTP POST to arbitrary URL (curl/wget)
+    - "\\bcurl\\s+.*(-d|--data|--data-raw|--data-binary|--upload-file|-T|-F|--form)\\s+"
+    - "\\bwget\\s+.*--post-(data|file)\\s+"
+    # SSRF: requests to cloud metadata / internal IPs
+    - "\\b(curl|wget|fetch|http)\\s+.*(169\\.254\\.169\\.254|127\\.0\\.0\\.[0-9]|\\[::1\\]|0\\.0\\.0\\.0|metadata\\.google)"
+    # DNS exfiltration
+    - "\\b(dig|nslookup|host)\\s+"
+  case_sensitive: false
+on_violation: block
+severity: critical

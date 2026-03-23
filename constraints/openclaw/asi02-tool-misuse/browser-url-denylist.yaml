@@ -1,0 +1,33 @@
+name: openclaw-browser-url-denylist
+description: "Block internal/metadata URLs in browser targetUrl"
+category: ASI02  # Tool Misuse
+tier: 1
+action: browser
+check:
+  type: denylist
+  field: targetUrl
+  values:
+    # Cloud metadata endpoints
+    - "169.254.169.254"
+    - "169.254.170.2"
+    - "metadata.google.internal"
+    - "kubernetes.default"
+    # Loopback addresses
+    - "127.0.0.1"
+    - "localhost"
+    - "0.0.0.0"
+    - "[::1]"
+    - "::ffff:127.0.0.1"
+    # IP encoding bypass vectors
+    - "0x7f"
+    - "2130706433"
+    # Dangerous schemes
+    - "file://"
+    - "gopher://"
+    - "ftp://"
+    - "javascript:"
+    - "data:"
+  match: contains
+  case_sensitive: false
+on_violation: block
+severity: critical

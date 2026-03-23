@@ -1,0 +1,26 @@
+name: resource-quota
+description: "Combined resource usage (memory + 2*disk) must not exceed quota"
+category: ASI02
+tier: 2
+action: "provision_*"
+check:
+  type: composite
+  field: "*"
+  variables:
+    memory_gb:
+      field: memory_gb
+      type: int
+      min: 0
+      max: 1024
+    disk_gb:
+      field: disk_gb
+      type: int
+      min: 0
+      max: 10000
+    max_resources:
+      field: max_resources
+      type: int
+      default: 100
+  expression: "memory_gb + disk_gb * 2 <= max_resources"
+on_violation: block
+severity: high

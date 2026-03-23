@@ -1,0 +1,15 @@
+name: policy-sanitizer-required
+description: "All paths from user input to DB must pass through sanitizer"
+category: ASI02
+tier: 4
+deploy_check:
+  type: data_flow
+  source: user_input
+  forbidden_sink: db_query
+  through: sanitize_input
+  flow_edges:
+    - [user_input, sanitize_input]
+    - [sanitize_input, db_query]
+    - [user_input, transform]
+    - [transform, db_query]
+  verify: "All paths from user_input to db_query go through sanitize_input"

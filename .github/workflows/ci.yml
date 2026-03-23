@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked --dev --no-group train --no-install-project
+      - run: uv run ruff check src/ tests/
+      - run: uv run ruff format --check src/ tests/
+
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked --dev --no-group train --all-extras
+      - run: uv run mypy src/munio/
+
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.14"]
+        include:
+          - os: macos-latest
+            python-version: "3.14"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - run: uv sync --locked --dev --no-group train --all-extras
+      - name: Run tests with coverage
+        run: uv run coverage run -m pytest -x -q
+      - name: Check coverage threshold
+        run: uv run coverage report --fail-under=85
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked --dev --no-group train
+      - run: uv run munio version
+      - run: uv run munio scan --help
+      - run: uv run munio config-scan --help
+      - run: uv run munio compose --help
+      - run: uv run munio check '{"tool":"test","args":{}}' -c generic || true
+      - run: uv run munio audit

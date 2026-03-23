@@ -1,0 +1,15 @@
+name: openclaw-read-path-traversal
+description: "Block path traversal and absolute paths in read tool"
+category: ASI05  # Code Execution / File System
+tier: 1
+action: read
+check:
+  type: regex_deny
+  field: path
+  patterns:
+    - "\\.\\."
+    - "^/"
+    - "^~"
+  case_sensitive: true
+on_violation: block
+severity: critical

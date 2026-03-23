@@ -1,0 +1,14 @@
+name: generic-safety-control-sequence
+description: "Detect multi-step safety bypass: config change followed by code execution"
+tier: 1
+action: "*"
+check:
+  type: sequence_deny
+  field: "*"
+  steps:
+    - "*config*"
+    - "*exec*"
+  window_seconds: 300
+  scope: agent
+on_violation: warn
+severity: high
