@@ -128,7 +128,7 @@ dev = [
     "zensical>=0.0.24",
 ]
 train = [
-    "transformers>=4.40,<5",
+    "transformers>=4.40,<6",
     "torch>=2.2,<3",
     "scikit-learn>=1.5,<2",
     "joblib>=1.4,<2",
