@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 import re
 from pathlib import Path as _Path
 
-from click.exceptions import Exit as ClickExit
+from typer import Exit as ClickExit
 
 from munio.scan.compose_cli import (
     _format_compose_text,
