@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-04
+
+### Fixed
+
+- Z3 worker no longer applies its RLIMIT_AS memory clamp when called
+  in-process — clamping the host process froze thread creation on Linux
+  (every ubuntu CI run had been timing out on this since 0.1.0)
+- `load_from_file()` raises `SchemaLoadError` instead of leaking a raw
+  `OSError` from `Path.is_file()` on Python < 3.13
+
+### Changed
+
+- Refreshed all locked dependencies to current versions (typer 0.26,
+  mcp 1.28, fastmcp 3.2, torch 2.12, mypy 2.1, ruff 0.15.20, etc.)
+- CI: actions bumped (checkout v6, setup-uv v7), reusable via
+  `workflow_call`, and pytest now dumps thread stacks when a test hangs
+
 ## [0.1.0] - 2026-03-20
 
 ### Added
