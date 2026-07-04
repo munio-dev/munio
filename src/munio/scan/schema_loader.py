@@ -37,7 +37,15 @@ def load_from_file(path: Path | str, *, server_name: str = "") -> list[ToolDefin
     """
     p = Path(path)
 
-    if not p.is_file():
+    # Path.is_file() propagates OSError (e.g. EACCES) on Python < 3.13
+    # instead of returning False.
+    try:
+        is_file = p.is_file()
+    except OSError:
+        msg = f"Cannot read tool definition file: {p}"
+        raise SchemaLoadError(msg) from None
+
+    if not is_file:
         msg = f"Tool definition file not found: {p}"
         raise SchemaLoadError(msg)
 
