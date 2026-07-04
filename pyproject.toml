@@ -222,5 +222,5 @@ markers = [
     "server: marks tests requiring server dependencies (fastapi, httpx)",
     "hypothesis: marks property-based tests",
     "integration: marks tests requiring real subprocess/network (deselect with '-m \"not integration\"')",
-    "real_mcp: marks tests requiring real MCP server via npx + network (run with '-m real_mcp')",
+    "real_mcp: marks tests requiring real MCP server via npx + network (skipped unless MUNIO_REAL_MCP_TESTS=1 or '-m real_mcp')",
 ]
