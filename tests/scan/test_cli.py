@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from click.exceptions import Exit
+from typer import Exit
 from typer.testing import CliRunner
 
 import munio.scan.cli as cli_mod

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 import sys
 
-from click.exceptions import Exit
+from typer import Exit
 
 from munio.gate.cli import (
     _find_stdio_servers,
