@@ -235,14 +235,18 @@ def _z3_worker(
     """
     import ast as _ast
 
-    # Enforce memory limit (best-effort, Linux only)
-    try:
-        import resource
+    # Enforce memory limit (best-effort, Linux only). Applied only when
+    # actually running as a child process: unit tests call this function
+    # in-process, and clamping RLIMIT_AS below the parent's current usage
+    # makes the next Thread.start() (queue feeder) hang forever on Linux.
+    if multiprocessing.parent_process() is not None:
+        try:
+            import resource
 
-        mem_bytes = max_memory_mb * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
-    except (ImportError, ValueError, OSError):
-        pass  # Not available or not enforceable on this platform
+            mem_bytes = max_memory_mb * 1024 * 1024
+            resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
+        except (ImportError, ValueError, OSError):
+            pass  # Not available or not enforceable on this platform
 
     violations: list[dict[str, Any]] = []
     try:
