@@ -56,7 +56,9 @@ jobs:
           enable-cache: true
       - run: uv sync --locked --dev --no-group train --all-extras
       - name: Run tests with coverage
-        run: uv run coverage run -m pytest -x -q
+        # faulthandler_timeout: dump all thread stacks if a single test
+        # exceeds 5 min — turns a silent 20-min job timeout into a traceback
+        run: uv run coverage run -m pytest -x -q -o faulthandler_timeout=300
       - name: Check coverage threshold
         run: uv run coverage report --fail-under=85
 
