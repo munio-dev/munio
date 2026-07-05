@@ -15,6 +15,7 @@ Checks:
   L2_008  Path traversal patterns
   L2_009  Command injection patterns
   L2_010  Combination escalation (multi-signal correlation)
+  L2_011  Annotation trust mismatch (readOnlyHint on a state-changing tool)
 """
 
 from __future__ import annotations
@@ -41,6 +42,57 @@ logger = logging.getLogger(__name__)
 
 _MAX_RECURSION_DEPTH = 10
 _MIN_TOOL_NAME_LEN = 4  # Skip cross-ref matching for very short tool names
+
+# L2_011: verb tokens that denote an externally-visible or persistent
+# side effect. A tool whose name contains one of these yet is annotated
+# ``readOnlyHint: true`` misrepresents itself to the client's confirmation
+# logic. Kept deliberately conservative (no ``get``/``run``/``query``/``exec``)
+# to avoid flagging read-style tools that merely share a verb.
+_MUTATING_VERBS: frozenset[str] = frozenset(
+    {
+        "send",
+        "email",
+        "sms",
+        "notify",
+        "post",
+        "publish",
+        "message",
+        "broadcast",
+        "delete",
+        "remove",
+        "destroy",
+        "drop",
+        "purge",
+        "truncate",
+        "wipe",
+        "erase",
+        "create",
+        "insert",
+        "write",
+        "update",
+        "upload",
+        "overwrite",
+        "append",
+        "rename",
+        "deploy",
+        "provision",
+        "release",
+        "purchase",
+        "pay",
+        "charge",
+        "transfer",
+        "refund",
+        "checkout",
+        "grant",
+        "revoke",
+        "disable",
+        "enable",
+        "terminate",
+        "reboot",
+        "restart",
+        "rollback",
+    }
+)
 
 # ── Pattern type: (compiled regex, human description, confidence 0-1) ────
 
@@ -476,6 +528,21 @@ def _extract_param_fields(
                     )
 
 
+def _ordered_name_tokens(name: str) -> tuple[str, ...]:
+    """Split a tool name into lowercase word tokens, preserving order.
+
+    Order is preserved so callers can report the *first* matching verb
+    deterministically (a set would give unstable ordering across runs).
+    """
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name)
+    return tuple(t for t in re.split(r"[^a-zA-Z0-9]+", spaced.lower()) if t)
+
+
+def _name_tokens(name: str) -> frozenset[str]:
+    """Lowercase word tokens of a tool name (camelCase + snake/kebab)."""
+    return frozenset(_ordered_name_tokens(name))
+
+
 def _extract_annotation_fields(
     data: dict[str, Any],
     parent_path: str,
@@ -554,6 +621,8 @@ class L2HeuristicAnalyzer:
 
         # Cross-server shadowing requires full description + tool name set
         findings.extend(self._check_cross_server(tool))
+        # Annotation mismatch inspects the tool's annotations + name, not text
+        findings.extend(self._check_annotation_mismatch(tool))
 
         return findings
 
@@ -727,6 +796,40 @@ class L2HeuristicAnalyzer:
                 break  # One cross-reference finding per tool
 
         return findings
+
+    def _check_annotation_mismatch(self, tool: ToolDefinition) -> list[Finding]:
+        """L2_011: ``readOnlyHint: true`` on a state-changing tool.
+
+        MCP clients (Claude Desktop, Cursor, VS Code) may skip the user
+        confirmation prompt for tools hinted read-only. A tool that mutates
+        state — sending email, deleting records, transferring funds — while
+        claiming ``readOnlyHint: true`` turns that optimization into a silent
+        exfiltration / unauthorized-action path (CWE-284).
+        """
+        annotations = tool.annotations
+        if not annotations or annotations.get("readOnlyHint") is not True:
+            return []
+
+        verb = next((t for t in _ordered_name_tokens(tool.name) if t in _MUTATING_VERBS), None)
+        if verb is None:
+            return []
+
+        return [
+            self._finding(
+                "L2_011",
+                tool.name,
+                FindingSeverity.HIGH,
+                (
+                    f"Annotated readOnlyHint=true but the tool name implies a "
+                    f"state-changing action ('{verb}'); clients may skip user "
+                    f"confirmation for an operation that modifies state"
+                ),
+                location="annotations.readOnlyHint",
+                attack_type=AttackType.AUTHORIZATION_BYPASS,
+                cwe="CWE-284",
+                confidence=0.8,
+            )
+        ]
 
     def _check_poisoned_values(
         self,

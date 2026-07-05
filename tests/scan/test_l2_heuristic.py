@@ -11,10 +11,11 @@ from munio.scan.layers.l1_schema import L1SchemaAnalyzer
 from munio.scan.layers.l2_heuristic import (
     L2HeuristicAnalyzer,
     _extract_text_fields,
+    _name_tokens,
     _normalize_text,
     _severity_from_confidence,
 )
-from munio.scan.models import FindingSeverity, Layer, ToolDefinition
+from munio.scan.models import AttackType, FindingSeverity, Layer, ToolDefinition
 
 from .conftest import load_corpus, make_tool
 
@@ -996,3 +997,72 @@ class TestEscalationAlwaysFires:
         findings = self.analyzer.analyze([tool])
         ids = {f.id for f in findings}
         assert "L2_010" in ids, f"Expected L2_010, got {ids}"
+
+
+class TestAnnotationMismatch:
+    """L2_011: readOnlyHint=true on a state-changing tool (CWE-284)."""
+
+    def setup_method(self) -> None:
+        self.analyzer = L2HeuristicAnalyzer()
+
+    def _l2_011(self, tool: ToolDefinition) -> list:
+        return [f for f in self.analyzer.analyze([tool]) if f.id == "L2_011"]
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "azure_communication_send_email",
+            "send_sms",
+            "deleteRecord",
+            "transfer_funds",
+            "publishPost",
+            "revoke_api_key",
+            "createUser",
+            "overwrite_file",
+        ],
+    )
+    def test_readonly_hint_on_mutating_tool_flagged(self, name: str) -> None:
+        tool = ToolDefinition(name=name, annotations={"readOnlyHint": True})
+        findings = self._l2_011(tool)
+        assert len(findings) == 1, f"Expected L2_011 for '{name}'"
+        f = findings[0]
+        assert f.severity == FindingSeverity.HIGH
+        assert f.cwe == "CWE-284"
+        assert f.attack_type == AttackType.AUTHORIZATION_BYPASS
+        assert f.location == "annotations.readOnlyHint"
+
+    @pytest.mark.parametrize(
+        ("name", "annotations", "reason"),
+        [
+            ("get_weather", {"readOnlyHint": True}, "read verb honestly read-only"),
+            ("list_files", {"readOnlyHint": True}, "list is read-only"),
+            ("read_file", {"readOnlyHint": True}, "read is read-only"),
+            ("search_documents", {"readOnlyHint": True}, "search is read-only"),
+            ("add_numbers", {"readOnlyHint": True}, "'add' excluded to avoid pure-compute FP"),
+            ("send_email", {"readOnlyHint": False}, "mutating but honestly labeled"),
+            ("send_email", {"readOnlyHint": "true"}, "string not bool True — strict match"),
+            ("send_email", {}, "no readOnlyHint claim"),
+            ("send_email", None, "no annotations at all"),
+        ],
+    )
+    def test_no_false_positive(self, name: str, annotations: dict | None, reason: str) -> None:
+        tool = ToolDefinition(name=name, annotations=annotations)
+        assert self._l2_011(tool) == [], f"Unexpected L2_011 ({reason})"
+
+    def test_message_names_the_verb(self) -> None:
+        tool = ToolDefinition(name="sendEmail", annotations={"readOnlyHint": True})
+        findings = self._l2_011(tool)
+        assert len(findings) == 1
+        assert "send" in findings[0].message
+
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [
+            ("sendEmail", {"send", "email"}),
+            ("azure_communication_send_email", {"azure", "communication", "send", "email"}),
+            ("delete-record", {"delete", "record"}),
+            ("update_v2_config", {"update", "v2", "config"}),
+        ],
+    )
+    def test_name_tokens(self, name: str, expected: set) -> None:
+        assert expected.issubset(_name_tokens(name))
