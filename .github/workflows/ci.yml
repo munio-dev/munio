@@ -64,6 +64,9 @@ jobs:
         run: uv run coverage report --fail-under=85
 
   smoke:
+    # Core install — NO optional extras (no z3). This is the config most users
+    # run, and the only lane that would catch a default-install regression like
+    # the one where composite constraints fail-closed-blocked without z3.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [lint]
@@ -79,3 +82,12 @@ jobs:
       - run: uv run munio compose --help
       - run: uv run munio check '{"tool":"test","args":{}}' -c generic || true
       - run: uv run munio audit
+      - name: Runtime gate decides composite constraints without z3
+        run: |
+          uv run python -c "import importlib.util; assert importlib.util.find_spec('z3') is None, 'z3 must be absent in the smoke env'"
+          # A valid purchase must be ALLOWED (exit 0) — the regression this guards.
+          uv run munio check '{"tool":"purchase","args":{"cost":10,"quantity":2,"budget":10000}}' -c generic >/dev/null
+          # An over-budget purchase must be BLOCKED (non-zero).
+          if uv run munio check '{"tool":"purchase","args":{"cost":100,"quantity":200,"budget":50}}' -c generic >/dev/null; then
+            echo 'FAIL: over-budget purchase was allowed on a no-z3 install'; exit 1
+          fi

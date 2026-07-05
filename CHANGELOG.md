@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the Z3 subprocess pool (`_z3_runtime`) entirely — the source of a
   long-standing CI hang. Z3 remains only for offline use: deploy-time policy
   verification and `munio scan` layer L4 (still in the `[z3]` extra).
+- CI now exercises the runtime gate on a **core install with no optional
+  extras** — the configuration most users run, and the blind spot that hid the
+  over-block above (the suite otherwise always ran with every extra present).
 
 ## [0.1.1] - 2026-07-04
 
