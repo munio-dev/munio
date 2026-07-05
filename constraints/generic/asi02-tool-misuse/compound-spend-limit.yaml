@@ -11,6 +11,7 @@ check:
       field: cost
       type: int
       min: 0
+      max: 1000000000000000000  # magnitude cap; keeps the box finite for exact checking
     quantity:
       field: quantity
       type: int

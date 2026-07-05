@@ -280,12 +280,13 @@ class TestVerifier:
         # but tier routing skips it
         assert result.checked_constraints == 0
 
-    def test_tier1_only_no_z3_init(self) -> None:
+    def test_tier1_only_no_solver_machinery(self) -> None:
         c = _make_denylist_constraint(["evil.com"])
         verifier = Verifier(_make_registry(c))
-        verifier.verify(_make_action(url="safe.com"))
-        # Z3 pool should not have been initialized
-        assert verifier._z3_pool is None
+        result = verifier.verify(_make_action(url="safe.com"))
+        assert result.allowed
+        # The runtime gate carries no Z3 subprocess pool at all.
+        assert not hasattr(verifier, "_z3_pool")
 
     def test_empty_registry_all_unmatched(self) -> None:
         verifier = Verifier(_make_registry())
