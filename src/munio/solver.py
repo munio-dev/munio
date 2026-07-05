@@ -1,29 +1,18 @@
-"""Tiered solver: Python runtime (Tier 1) + Z3 subprocess pool (Tier 2-3) + PolicyVerifier (Tier 4).
+"""Runtime solver: pure-Python Tier 1 + in-process COMPOSITE checking (Tier 2-3).
 
-Architecture:
-- Tier 1 (<0.01ms, 90-95% traffic): Pure Python — set lookup, regex, thresholds.
-  NO Z3. Handles denylist, allowlist, regex_deny, regex_allow, threshold checks.
+The runtime gate uses no SMT solver — every check is deterministic and
+sub-millisecond, and the ``[z3]`` extra is not required to run it.
 
-- Tier 2 (5-100ms, 3-5%): Z3 QF_LIA subprocess — arithmetic constraint interactions.
-  When multiple numerical constraints need joint verification (e.g., per_request * concurrent <= daily).
+- Tier 1: set lookup, regex, thresholds (denylist/allowlist/regex/threshold).
+- Tier 2-3: COMPOSITE constraints (multi-variable arithmetic). Concrete values
+  are evaluated directly; missing variables are decided exactly by the endpoint
+  evaluator (``_composite_endpoint``), which answers "could some in-bounds value
+  violate this?" without a solver. Expressions outside its grammar are rejected
+  at load time, not mis-decided at runtime.
 
-- Tier 3 (100ms-5s, 1-2%): Z3 full + portfolio option — complex multi-variable.
-  Fail-closed on timeout (treat as violation).
-
-- Tier 4 (seconds-minutes, per deploy): Deploy-time Z3 policy verification.
-  Z3 is IRREPLACEABLE here. No timeout pressure — runs in CI/CD.
-  4 use cases: consistency, no_new_access, data_flow, filter_completeness.
-
-Z3 process isolation (MANDATORY — from AWS Zelkova/MS SecGuru production lessons):
-- Serialize as SMT-LIB2, solve in worker process, kill periodically
-- rlimit (deterministic) for CI reproducibility, timeout as safety net
-- External process timeout > Z3 internal timeout (Z3 ignores its own timeout in preprocessing)
-- Z3 LEAKS MEMORY on timeout — worker processes are disposable
-
-Z3 theories:
-- USE: QF_LIA (reliable), QF_LRA (reliable), QF_BV (small widths), QF_UFDT (enums)
-- AVOID at runtime: QF_S/QF_SLIA (incomplete), QF_NIA (undecidable)
-- String constraints: ALWAYS Tier 1 Python, NEVER Z3 at runtime
+Z3 remains only OFFLINE, where satisfiability is the actual problem and there is
+no latency or install-footprint pressure: deploy-time policy verification
+(``PolicyVerifier``, Tier 4) and static scanning (``munio.scan`` layer L4).
 """
 
 from __future__ import annotations
@@ -63,6 +52,15 @@ from munio._composite import (
 )
 from munio._composite import (
     _VarAccessor as _VarAccessor,
+)
+from munio._composite_endpoint import (
+    UnsupportedCompositeError as UnsupportedCompositeError,
+)
+from munio._composite_endpoint import (
+    decide_violation as decide_violation,
+)
+from munio._composite_endpoint import (
+    parse_comparisons as parse_comparisons,
 )
 from munio._matching import (
     _MISSING as _MISSING,
@@ -117,11 +115,6 @@ from munio._z3_regex import _sre_category_to_z3 as _sre_category_to_z3
 from munio._z3_regex import _sre_charset_to_z3 as _sre_charset_to_z3
 from munio._z3_regex import _sre_to_z3 as _sre_to_z3
 from munio._z3_regex import _z3_dot as _z3_dot
-from munio._z3_runtime import Z3SubprocessPool as Z3SubprocessPool
-from munio._z3_runtime import _ast_to_z3 as _ast_to_z3
-from munio._z3_runtime import _expression_has_div as _expression_has_div
-from munio._z3_runtime import _z3_worker as _z3_worker
-from munio._z3_runtime import check_z3_version as check_z3_version
 from munio.models import (
     Action,
     CheckType,
@@ -140,8 +133,7 @@ __all__ = [
     "RuntimeSolver",
     "TemporalStore",
     "Tier1Solver",
-    "Z3SubprocessPool",
-    "check_z3_version",
+    "check_composite_tier23",
 ]
 
 logger = logging.getLogger(__name__)
@@ -209,8 +201,8 @@ class Tier1Solver:
             # Defensive re-filtering (safety net)
             if not constraint.enabled:
                 continue
-            # Evaluate ALL tiers — Tier 2/3 Z3 worker is a stub (Phase 1),
-            # so Tier 1 Python logic must handle all check types as fallback.
+            # Tier1Solver defensively handles all check types; Tier 2-3 COMPOSITE
+            # constraints are decided by check_composite_tier23 in the Verifier.
             # Tier 4 (deploy-time) constraints have check=None → skipped below.
             action_patterns = (
                 [p.casefold() for p in constraint.actions]
@@ -250,7 +242,7 @@ class Tier1Solver:
                                 field="(composite)",
                             )
                         )
-                    # Tier 2-3 will be deferred to Z3SubprocessPool by Verifier
+                    # Tier 2-3 are handled in-process by check_composite_tier23
                     continue
                 expr_holds, _values = result
                 if not expr_holds:
@@ -599,3 +591,65 @@ class Tier1Solver:
             agent_id = action.agent_id or "__anonymous__"
             return f"agent:{_sanitize_string(agent_id)[:128]}"
         return "__global__"
+
+
+# ── Tier 2-3: in-process COMPOSITE checking (no solver) ──────────────────
+
+
+def check_composite_tier23(action: Action, constraints: Sequence[Constraint]) -> list[Violation]:
+    """Decide Tier 2-3 COMPOSITE constraints in-process (replaces the Z3 pool).
+
+    Answers "could some in-bounds assignment of the missing variables violate
+    this constraint?" exactly via the endpoint evaluator — deterministic and
+    sub-millisecond, no subprocess, no optional Z3 dependency. Non-COMPOSITE
+    Tier 2-3 constraints are skipped (as the former worker did). Resolution
+    errors, and any expression that slips past load-time classification, are
+    fail-closed.
+    """
+    violations: list[Violation] = []
+    for constraint in constraints:
+        check = constraint.check
+        if check is None or check.type != CheckType.COMPOSITE:
+            continue
+
+        resolved = _resolve_composite_variables(check.variables, action.args, allow_unbound=True)
+        if resolved.error:
+            violations.append(
+                _make_violation(
+                    constraint,
+                    f"COMPOSITE: {resolved.error} (fail-closed)",
+                    field="(composite)",
+                )
+            )
+            continue
+
+        try:
+            comparisons = parse_comparisons(check.expression)
+            bounds = {
+                name: (
+                    acc.min if acc.min is not None else -math.inf,
+                    acc.max if acc.max is not None else math.inf,
+                )
+                for name, acc in resolved.unbound.items()
+            }
+            violated = decide_violation(comparisons, resolved.concrete, bounds)
+        except UnsupportedCompositeError:
+            # Load-time classify should prevent this; fail-closed if it doesn't.
+            violations.append(
+                _make_violation(
+                    constraint,
+                    "COMPOSITE: unsupported expression reached runtime (fail-closed)",
+                    field="(composite)",
+                    source=ViolationSource.INFRA,
+                )
+            )
+            continue
+
+        if violated:
+            detail = (
+                "Composite expression can be violated (counterexample exists)"
+                if resolved.unbound
+                else "Composite expression violated"
+            )
+            violations.append(_make_violation(constraint, detail, field="(composite)"))
+    return violations

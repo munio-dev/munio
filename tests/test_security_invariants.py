@@ -9,10 +9,8 @@ reaches review.
 Checked invariants:
 - Bool-before-int guard on every ``isinstance(x, int|float)``
 - No ``except`` block returns ``[]`` (fail-open by accident)
-- No raw values leaked in Z3 worker violation dicts
 - No ``repr()`` calls in ``_eval_composite_python``
 - No ``str(exc)`` in HTTP-facing code (info leak)
-- Z3 division safety functions called in ``_z3_worker``
 - CORS defaults are empty (not wildcard)
 - No ``yaml.load()`` (only ``yaml.safe_load()``)
 - No ``str(exc)`` in ``_make_system_violation`` calls
@@ -35,7 +33,7 @@ _SOLVER_MODULES = {
     "solver.py": _PACKAGE_DIR / "solver.py",
     "_matching.py": _PACKAGE_DIR / "_matching.py",
     "_composite.py": _PACKAGE_DIR / "_composite.py",
-    "_z3_runtime.py": _PACKAGE_DIR / "_z3_runtime.py",
+    "_composite_endpoint.py": _PACKAGE_DIR / "_composite_endpoint.py",
     "_z3_regex.py": _PACKAGE_DIR / "_z3_regex.py",
     "_policy_verifier.py": _PACKAGE_DIR / "_policy_verifier.py",
 }
@@ -64,7 +62,7 @@ _ALL_SOURCE_FILES = list(_PACKAGE_DIR.rglob("*.py"))
 # Convenience aliases for backward compatibility in tests
 _SOLVER_TREE = _ALL_TREES["solver.py"]
 _COMPOSITE_TREE = _ALL_TREES["_composite.py"]
-_Z3_RUNTIME_TREE = _ALL_TREES["_z3_runtime.py"]
+_ENDPOINT_TREE = _ALL_TREES["_composite_endpoint.py"]
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────
@@ -336,76 +334,6 @@ class TestFailClosedExceptBlocks:
             )
 
 
-class TestNoRawValuesInWorkerViolations:
-    """Z3 worker violation dicts must not leak raw values.
-
-    All ``actual_value`` fields must be ``""`` (empty string).  No f-string
-    interpolation of variables named raw, val, exc, value, concrete, result.
-    """
-
-    _LEAK_VARNAMES: ClassVar[set[str]] = {
-        "raw",
-        "val",
-        "exc",
-        "value",
-        "concrete",
-        "result",
-        "values",
-    }
-
-    @staticmethod
-    def _find_worker_func(tree: ast.Module) -> ast.FunctionDef | None:
-        return _find_function_by_name(tree, "_z3_worker")  # type: ignore[return-value]
-
-    def test_actual_value_always_empty(self) -> None:
-        func = self._find_worker_func(_Z3_RUNTIME_TREE)
-        assert func is not None, "_z3_worker not found"
-
-        violations: list[tuple[int, str]] = []
-        for node in ast.walk(func):
-            if not isinstance(node, ast.Dict):
-                continue
-            for key, val in zip(node.keys, node.values, strict=True):
-                if not isinstance(key, ast.Constant) or key.value != "actual_value":
-                    continue
-                # Must be Constant("") — empty string
-                if isinstance(val, ast.Constant) and val.value == "":
-                    continue
-                violations.append((val.lineno, ast.dump(val)))
-
-        if violations:
-            details = "\n".join(f"  line {line}: actual_value={expr}" for line, expr in violations)
-            pytest.fail(
-                f"Z3 worker leaks raw values in actual_value:\n{details}\n"
-                'Fix: use actual_value="" (empty string).'
-            )
-
-    def test_no_fstring_interpolation_of_raw_values(self) -> None:
-        func = self._find_worker_func(_Z3_RUNTIME_TREE)
-        assert func is not None, "_z3_worker not found"
-
-        violations: list[tuple[int, str]] = []
-        for node in ast.walk(func):
-            if not isinstance(node, ast.JoinedStr):  # f-string
-                continue
-            violations.extend(
-                (node.lineno, val.value.id)
-                for val in node.values
-                if isinstance(val, ast.FormattedValue)
-                and isinstance(val.value, ast.Name)
-                and val.value.id in self._LEAK_VARNAMES
-            )
-
-        if violations:
-            details = "\n".join(
-                f"  line {line}: f-string includes {{{var}}}" for line, var in violations
-            )
-            pytest.fail(
-                f"Z3 worker leaks values via f-strings:\n{details}\n"
-                "Fix: use generic messages without interpolating raw values."
-            )
-
-
 class TestNoReprInCompositeEval:
     """No repr() calls or !r conversions in _eval_composite_python.
 
@@ -500,36 +428,6 @@ class TestNoStrExcInResponses:
                 f"Found str(exc) in HTTP-facing code (info leak):\n{details}\n"
                 "Fix: log the exception, return a generic message."
             )
-
-
-class TestZ3DivisionSafetyFunctions:
-    """_z3_worker must call _expression_has_div and _collect_divisor_names.
-
-    Tripwire test: catches accidental removal of division safety functions
-    during refactoring.  Functional correctness is verified by
-    TestZ3DivisionSoundness in test_solver.py.
-    """
-
-    @pytest.mark.parametrize(
-        "func_name",
-        ["_expression_has_div", "_collect_divisor_names"],
-    )
-    def test_z3_worker_calls_division_safety_function(self, func_name: str) -> None:
-        worker = _find_function_by_name(_Z3_RUNTIME_TREE, "_z3_worker")
-        assert worker is not None, "_z3_worker not found"
-
-        calls = [
-            node
-            for node in ast.walk(worker)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Name)
-            and node.func.id == func_name
-        ]
-        assert calls, (
-            f"_z3_worker does not call {func_name}(). "
-            "Division safety requires both _expression_has_div (Int->Real promotion) "
-            "and _collect_divisor_names (non-zero guard)."
-        )
 
 
 class TestCorsDefaultNotWildcard:

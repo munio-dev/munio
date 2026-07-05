@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Runtime gate over-blocked on installs without the `[z3]` extra.** COMPOSITE
+  Tier 2-3 constraints (e.g. the built-in spend-limit / resource-quota /
+  discount-bound rules, active by default) tried to load Z3 in a worker; without
+  the extra installed this failed and, being fail-closed, blocked *every*
+  matching action — including valid ones. The default install now decides these
+  correctly.
+
+### Changed
+
+- **The runtime gate no longer uses an SMT solver.** COMPOSITE Tier 2-3
+  constraints are decided in-process by an exact endpoint evaluator (multilinear
+  extrema at box vertices, exact rational arithmetic). It is deterministic,
+  sub-millisecond, and needs no optional dependency. A differential oracle test
+  cross-checks it against Z3 on tens of thousands of random cases.
+- Constraints whose expression falls outside the exactly-decidable grammar are
+  now rejected at **load time** with an actionable message, instead of being
+  mis-decided or crashing at runtime.
+- Removed the Z3 subprocess pool (`_z3_runtime`) entirely — the source of a
+  long-standing CI hang. Z3 remains only for offline use: deploy-time policy
+  verification and `munio scan` layer L4 (still in the `[z3]` extra).
+
 ## [0.1.1] - 2026-07-04
 
 ### Fixed

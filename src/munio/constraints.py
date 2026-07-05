@@ -29,7 +29,8 @@ from typing import TYPE_CHECKING
 import yaml
 from pydantic import ValidationError
 
-from munio.models import Constraint, MunioError, Tier
+from munio._composite_endpoint import classify
+from munio.models import CheckType, Constraint, MunioError, Tier
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -54,6 +55,36 @@ class ConstraintLoadError(MunioError):
     Wraps YAML syntax errors, Pydantic validation errors, and I/O errors
     with file-path context for actionable error messages.
     """
+
+
+def _reject_undecidable_composite(constraint: Constraint, path: Path, index: int) -> None:
+    """Fail load if a Tier 2-3 COMPOSITE constraint can't be decided exactly at runtime.
+
+    The runtime gate has no solver: it decides COMPOSITE constraints with the
+    in-process endpoint evaluator. Anything outside that evaluator's grammar
+    (see ``_composite_endpoint.classify``) must be rejected here with an
+    actionable message rather than mis-decided or crashed at runtime.
+    """
+    check = constraint.check
+    if (
+        check is None
+        or check.type != CheckType.COMPOSITE
+        or constraint.tier not in (Tier.TIER_2, Tier.TIER_3)
+    ):
+        return
+    unbounded = [
+        name
+        for name, var in check.variables.items()
+        if var.default is None and (var.min is None or var.max is None)
+    ]
+    result = classify(check.expression, unbounded)
+    if not result.supported:
+        msg = (
+            f"Constraint {constraint.name!r} in {path} (item {index}) cannot be verified "
+            f"at runtime: {result.reason}. Add finite bounds, use offline (Tier 4) "
+            f"verification, or simplify the expression."
+        )
+        raise ConstraintLoadError(msg)
 
 
 def load_constraints(path: Path | str) -> list[Constraint]:
@@ -114,10 +145,12 @@ def load_constraints(path: Path | str) -> list[Constraint]:
     constraints: list[Constraint] = []
     for i, item in enumerate(items):
         try:
-            constraints.append(Constraint.model_validate(item))
-        except ValidationError as exc:  # noqa: PERF203 — need per-item error reporting
+            constraint = Constraint.model_validate(item)
+        except ValidationError as exc:
             msg = f"Constraint validation failed in {p} (item {i}): {exc}"
             raise ConstraintLoadError(msg) from exc
+        _reject_undecidable_composite(constraint, p, i)
+        constraints.append(constraint)
 
     logger.debug("Loaded %d constraint(s) from %s", len(constraints), p)
     return constraints

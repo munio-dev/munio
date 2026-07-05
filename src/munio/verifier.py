@@ -4,7 +4,7 @@ Pipeline stages:
 1. Action -> match applicable constraints (by action pattern)
 2. Group constraints by tier
 3. Run Tier 1 checks (Python, sync, <0.01ms each)
-4. If Tier 2-3 needed -> dispatch to Z3 subprocess pool
+4. If Tier 2-3 needed -> decide in-process (endpoint evaluator, no solver)
 5. Aggregate results -> VerificationResult
 
 Modes:
@@ -21,13 +21,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from munio._temporal import InMemoryTemporalStore, TemporalStore
-from munio._z3_runtime import Z3SubprocessPool
 from munio.constraints import ConstraintRegistry, load_constraints_dir
 from munio.models import (
     Action,
@@ -40,7 +38,7 @@ from munio.models import (
     Violation,
     ViolationSeverity,
 )
-from munio.solver import Tier1Solver
+from munio.solver import Tier1Solver, check_composite_tier23
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -73,14 +71,12 @@ class Verifier:
         result = verifier.verify(Action(tool="http_request", args={"url": "evil.com"}))
     """
 
-    __slots__ = ("_config", "_registry", "_temporal_store", "_tier1", "_z3_lock", "_z3_pool")
+    __slots__ = ("_config", "_registry", "_temporal_store", "_tier1")
 
     _config: ConstraintConfig
     _registry: ConstraintRegistry
     _temporal_store: TemporalStore
     _tier1: Tier1Solver
-    _z3_lock: threading.Lock
-    _z3_pool: Z3SubprocessPool | None
 
     def __init__(
         self,
@@ -99,8 +95,6 @@ class Verifier:
         else:
             self._temporal_store = InMemoryTemporalStore()
         self._tier1 = Tier1Solver(temporal_store=self._temporal_store)
-        self._z3_pool = None
-        self._z3_lock = threading.Lock()
 
     @property
     def registry(self) -> ConstraintRegistry:
@@ -168,8 +162,7 @@ class Verifier:
             all_violations.extend(self._tier1.check(action, tier1))
 
         if tier23:
-            pool = self._get_z3_pool()
-            all_violations.extend(pool.check(action, tier23))
+            all_violations.extend(check_composite_tier23(action, tier23))
 
         # 6. Post-process violations
         all_violations = self._postprocess_violations(all_violations)
@@ -188,14 +181,6 @@ class Verifier:
             elapsed_ms=round(elapsed_ms, 3),
             tier_breakdown=tier_breakdown,
         )
-
-    def _get_z3_pool(self) -> Z3SubprocessPool:
-        """Lazily initialize the Z3 subprocess pool (thread-safe)."""
-        if self._z3_pool is None:
-            with self._z3_lock:
-                if self._z3_pool is None:  # double-check after acquiring lock
-                    self._z3_pool = Z3SubprocessPool(self._config.solver)
-        return self._z3_pool
 
     def _determine_allowed(
         self,

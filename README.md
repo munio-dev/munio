@@ -133,14 +133,22 @@ Adapters for LangChain, CrewAI, OpenAI Agents SDK, and MCP. [See docs.](https://
 
 ## How it works
 
-| Tier | What | Backend | Latency |
-|------|------|---------|---------|
-| **1** | Denylists, allowlists, regex, thresholds | Pure Python | <0.01ms |
-| **2** | Multi-variable arithmetic | Z3 subprocess | 5-100ms |
-| **3** | Complex constraints | Z3 full | 100ms-5s |
-| **4** | Deploy-time policy verification | Z3 offline | per deploy |
+The runtime gate is **100% in-process and deterministic** — no SMT solver, no
+subprocess, and the `[z3]` extra is not required to run it:
 
-Tier 1 handles 90-95% of constraints. Z3 is optional (`pip install "munio[z3]"`).
+| What | Backend | Latency |
+|------|---------|---------|
+| Denylists, allowlists, regex, thresholds | Pure Python | <0.01ms |
+| Multi-variable arithmetic constraints | Exact endpoint evaluator | <0.1ms |
+
+For a constraint like `cost * quantity <= budget`, munio decides whether *any*
+in-bounds value of a missing variable could violate it by evaluating the
+polynomial at the bounds — an exact answer, no solver. Constraints outside that
+grammar are rejected at load time with an actionable message, never mis-decided.
+
+Z3 is used only **offline**, where satisfiability is the real problem and there's
+no latency pressure: deploy-time policy verification (`munio policy`) and static
+scanning (`munio scan` layer L4). Both are in the optional `[z3]` extra.
 
 ## All commands
 
