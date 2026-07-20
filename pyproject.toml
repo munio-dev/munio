@@ -46,7 +46,7 @@ dependencies = [
 
 [project.optional-dependencies]
 z3 = [
-    "z3-solver>=4.16,<5",
+    "z3-solver>=4.16,<6",
 ]
 server = [
     "fastapi>=0.115,<1",
